@@ -34,6 +34,11 @@ function ft_gedcom_date(?string $s): array {
     $words = ['ABT' => 'about', 'EST' => 'about', 'CAL' => 'about', 'BEF' => 'before', 'AFT' => 'after'];
     $q = ['ABT' => 'abt', 'EST' => 'abt', 'CAL' => 'abt', 'BEF' => 'bef', 'AFT' => 'aft'];
     if (preg_match('/^(ABT|EST|CAL|BEF|AFT)\.?\s+(.+)$/', $s, $m)) {
+        if (preg_match('/^([A-Z]{3})\s+(\d{3,4})$/', $m[2], $partial) && isset(FT_GED_MONTHS[$partial[1]])) {
+            $year = (int)$partial[2];
+            return [null, $year, $words[$m[1]] . ' ' . ucfirst(strtolower($partial[1])) . ' ' . $year,
+                ['q' => $q[$m[1]], 'y' => $year, 'm' => FT_GED_MONTHS[$partial[1]]]];
+        }
         [, $y] = ft_gedcom_date($m[2]);
         return [null, $y, $y ? $words[$m[1]] . ' ' . $y : '', $y ? ['q' => $q[$m[1]], 'y' => $y] : null];
     }

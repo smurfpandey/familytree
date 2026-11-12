@@ -17,7 +17,7 @@ $ged = "\xEF\xBB\xBF" . implode("\r\n", [
     '0 @I2@ INDI', '1 NAME Sita /Devi/', '1 SEX F', '1 BIRT', '2 DATE BET 1922 AND 1925', '1 DEAT Y', '1 FAMS @F1@',
     '1 OBJE', '2 FILE https://example.org/sita.jpg', '3 FORM jpg', '2 TITL Sita at her wedding',
     '0 @I3@ INDI', '1 NAME Mohan /Sharma/', '1 SEX M', '1 BIRT', '2 DATE 3 MAR 1945', '1 FAMC @F1@', '1 NOTE @N1@',
-    '0 @I4@ INDI', '1 NAME Kamla /Jha/', '1 SEX F', '1 FAMS @F2@',
+    '0 @I4@ INDI', '1 NAME Kamla /Jha/', '1 SEX F', '1 BIRT', '2 DATE ABT MAR 1930', '1 FAMS @F2@',
     '0 @I5@ INDI', '1 NAME Anjali /Sharma/', '1 SEX F', '1 BIRT', '2 DATE 1999', '1 FAMC @F2@', '2 PEDI adopted',
     '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@', '1 CHIL @I3@', '1 MARR', '2 DATE 5 MAY 1943',
     '0 @F2@ FAM', '1 HUSB @I1@', '1 WIFE @I4@', '1 CHIL @I5@', '1 MARR', '2 DATE 1 JUN 1960', '1 DIV', '2 DATE 4 APR 1975',
@@ -50,8 +50,10 @@ assert($anjali['fid'] === $ram['id'] && $anjali['mid'] === $by['Kamla Jha']['id'
 assert($anjali['birth_date'] === null && $anjali['is_alive'] === 1 && $anjali['extra']['birth_approx'] === ['q' => 'year', 'y' => 1999], 'a year alone is kept as a year');
 assert($anjali['extra']['father_kind'] === 'adoptive' && $anjali['extra']['mother_kind'] === 'adoptive', 'PEDI adopted');
 $kamla = $by['Kamla Jha'];
+assert($kamla['extra']['birth_approx'] === ['q' => 'abt', 'y' => 1930, 'm' => 3], 'an approximate month and year are preserved');
 assert($kamla['extra']['partners'][(string)$ram['id']] === ['married' => '1960-06-01', 'end' => 'divorce', 'ended' => '1975-04-04'], 'marriage and divorce dates on the partnership');
 assert($ram['extra']['partners'][(string)$sita['id']] === ['married' => '1943-05-05'], 'first marriage, still together');
+assert(ft_extra_clean(['birth_approx' => ['q' => 'abt', 'y' => 1994, 'm' => 3]])['birth_approx'] === ['q' => 'abt', 'y' => 1994, 'm' => 3], 'an approximate month survives extra sanitization');
 
 $utf16 = "\xFF\xFE" . mb_convert_encoding("0 HEAD\r\n0 @I1@ INDI\r\n1 NAME Zoë /Müller/\r\n0 TRLR", 'UTF-16LE', 'UTF-8');
 assert(ft_gedcom_read($utf16)['members'][0]['name'] === 'Zoë Müller', 'UTF-16 files');

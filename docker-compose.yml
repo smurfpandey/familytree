@@ -24,6 +24,7 @@ services:
     #   FT_TREE_STORAGE_MB: "1024"
     #   CRON_KEY: change-me
     volumes:
+      - ./public_html:/var/www/html
       - uploads:/var/www/html/admin/uploads
       - storage:/var/www/html/storage
 volumes:

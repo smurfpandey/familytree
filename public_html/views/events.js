@@ -104,11 +104,13 @@ class EventsView extends FamilyTreeController {
         if (!seenAnniv.has(key)) { seenAnniv.add(key); this.events.push({ type: 'anniversary', member: m, spouse, ...a }); }
       }
     });
-    // approximate dates: placed mid-year (or mid-range) and drawn dashed, only on the timeline
+    // approximate dates: month/year about-dates use mid-month; other dates use mid-year or mid-range
     const approxDate = a => {
       if (!a || !a.y) return null;
       const y = a.q === 'bet' && a.y2 ? Math.round((a.y + a.y2) / 2) : a.y;
-      return { year: y, month: 7, day: 1, date: new Date(y, 6, 1) };
+      const month = a.q === 'abt' && a.m >= 1 && a.m <= 12 ? a.m : 7;
+      const day = month === 7 && !(a.q === 'abt' && a.m) ? 1 : 15;
+      return { year: y, month, day, date: new Date(y, month - 1, day) };
     };
     this.familyData.forEach(m => {
       const x = (m.extra && typeof m.extra === 'object') ? m.extra : {};
@@ -422,10 +424,10 @@ class EventsView extends FamilyTreeController {
       const who = e.people.map(p => evEsc(p.name)).slice(0, 4).join(', ') + (e.people.length > 4 ? ' and others' : '');
       tip.innerHTML = `<b>${evEsc(e.title)}</b><span>${this.typeName(e)} · ${this.customDate(e)}</span>${who ? `<span>${who}</span>` : ''}${e.c.place ? `<span>${evEsc(e.c.place)}</span>` : ''}`;
     } else {
-      const d = e.date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      const d = e.approx || e.date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
       const up = this.upcoming(e);
       const extra = e.type === 'death' ? `${up.years} years ago` : e.type === 'birthday' && Number(e.member.is_alive) === 1 ? `turns ${up.years} in ${up.days} day${up.days === 1 ? '' : 's'}` : `${up.years} years`;
-      tip.innerHTML = `<b>${evEsc(this.label(e))}</b><span>${this.typeName(e)} · ${d}</span><span>${extra}</span>`;
+      tip.innerHTML = `<b>${evEsc(this.label(e))}</b><span>${this.typeName(e)} · ${d}</span>,&nbsp;<span>${extra}</span>`;
     }
     tip.hidden = false; this.moveTip(evt);
   }

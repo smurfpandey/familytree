@@ -462,24 +462,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Close button
   document.addEventListener('click', (e) => {
-    if (e.target.id === 'mpCloseBtn') {
+    if (e.target.closest('#mpCloseBtn')) {
       closeMemberPanel();
     }
   });
   
   // Relative / child chip clicks
   document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('mp-link')) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const relativeId = Number(e.target.dataset.relId);
-      const relativeType = e.target.dataset.relType;
-      
-      if (relativeId && !isNaN(relativeId)) {
-        navigateToRelative(relativeId);
-      }
-    }
+    const relativeLink = e.target.closest('.mp-link[data-rel-id]');
+    if (!relativeLink) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const relativeId = Number(relativeLink.dataset.relId);
+    if (relativeId && !isNaN(relativeId)) navigateToRelative(relativeId);
   });
 
   // Quick Add relative from member panel
@@ -495,9 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetMember = window.customTreeView?.familyData?.find(m => m.id === curId);
 
     if (window.customTreeView && targetMember) {
-      window.customTreeView.openCreatorPopover(null, {
-        type: type,
-        targetPerson: targetMember,
+      window.customTreeView.openCreatorPopover(targetMember, type, {
         presetGender: presetGender
       });
     }

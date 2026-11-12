@@ -69,7 +69,7 @@ function ft_member_val(array $row, string $col): mixed {
  * extra: one JSON column for the details that came after the original columns, so a data home
  * (Sheets, Airtable, the family's own database) only ever needs this one column. Keys:
  *   name_local, native_place, gotra                     text
- *   birth_approx, death_approx  {q: abt|bef|aft|bet|year, y, y2}   when the exact date isn't known
+ *   birth_approx, death_approx  {q: abt|bef|aft|bet|year, y, m?, y2?}   when the exact date isn't known; m is for abt
  *   birth_tithi, death_tithi    {m: 1-12, p: S|K, t: 1-15, vs?}   Hindu lunar date, if given by hand
  *   sources   [{fact, title, url, page, note}]           where a fact comes from
  *   father_kind, mother_kind    birth|adoptive|step|foster
@@ -93,7 +93,10 @@ function ft_extra_clean(mixed $in): array {
     foreach (['birth_approx', 'death_approx'] as $k) {
         $a = $in[$k] ?? null;
         if (is_array($a) && in_array($a['q'] ?? '', ['abt', 'bef', 'aft', 'bet', 'year'], true) && ($y = (int)($a['y'] ?? 0)) > 0 && $y < 3000) {
-            $out[$k] = ['q' => $a['q'], 'y' => $y] + (($a['q'] === 'bet' && ($y2 = (int)($a['y2'] ?? 0)) > $y) ? ['y2' => $y2] : []);
+            $approx = ['q' => $a['q'], 'y' => $y];
+            if ($a['q'] === 'abt' && ($month = (int)($a['m'] ?? 0)) >= 1 && $month <= 12) $approx['m'] = $month;
+            if ($a['q'] === 'bet' && ($y2 = (int)($a['y2'] ?? 0)) > $y) $approx['y2'] = $y2;
+            $out[$k] = $approx;
         }
     }
     foreach (['birth_tithi', 'death_tithi'] as $k) {

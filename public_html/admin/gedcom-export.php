@@ -111,7 +111,8 @@ $out[] = '1 DATE ' . strtoupper(date('j M Y'));
 /** an approximate date as GEDCOM: ABT 1890, BEF 1902, BET 1880 AND 1885, 1890 */
 function gedApprox(?array $a): ?string {
     if (!$a || empty($a['y'])) return null;
-    return match ($a['q'] ?? '') { 'abt' => 'ABT ' . $a['y'], 'bef' => 'BEF ' . $a['y'], 'aft' => 'AFT ' . $a['y'],
+    $month = isset($a['m']) ? [1 => 'JAN', 2 => 'FEB', 3 => 'MAR', 4 => 'APR', 5 => 'MAY', 6 => 'JUN', 7 => 'JUL', 8 => 'AUG', 9 => 'SEP', 10 => 'OCT', 11 => 'NOV', 12 => 'DEC'][$a['m']] ?? null : null;
+    return match ($a['q'] ?? '') { 'abt' => 'ABT ' . ($month ? $month . ' ' : '') . $a['y'], 'bef' => 'BEF ' . $a['y'], 'aft' => 'AFT ' . $a['y'],
         'bet' => 'BET ' . $a['y'] . ' AND ' . ($a['y2'] ?? $a['y']), default => (string)$a['y'] };
 }
 /** sources for one fact, as citations at the given level */

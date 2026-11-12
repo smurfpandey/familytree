@@ -9,6 +9,7 @@
 (function () {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const P = () => window.FTPanchang || null;
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const MASAS = ['Chaitra', 'Vaishakh', 'Jyeshtha', 'Ashadh', 'Shravan', 'Bhadrapad', 'Ashwin', 'Kartik', 'Margashirsh', 'Paush', 'Magh', 'Phalgun'];
   const TITHIS = ['Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashthi', 'Saptami', 'Ashtami', 'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi'];
   const masaName = m => (P() && P().MASA_NAMES ? P().MASA_NAMES[m - 1] : MASAS[m - 1]) || '';
@@ -17,7 +18,8 @@
   /** "about 1890", "before 1902", "between 1880 and 1885" */
   function approxLabel(a) {
     if (!a || !a.y) return '';
-    return { abt: `about ${a.y}`, bef: `before ${a.y}`, aft: `after ${a.y}`, bet: `between ${a.y} and ${a.y2 || '?'}`, year: `${a.y}` }[a.q] || `${a.y}`;
+    const about = `about ${a.m >= 1 && a.m <= 12 ? MONTHS[a.m - 1] + ' ' : ''}${a.y}`;
+    return { abt: about, bef: `before ${a.y}`, aft: `after ${a.y}`, bet: `between ${a.y} and ${a.y2 || '?'}`, year: `${a.y}` }[a.q] || `${a.y}`;
   }
   /** a hand-entered tithi: "Kartik Krishna Ashtami (VS 1990)" */
   function tithiLabel(t) {
@@ -113,12 +115,14 @@
 
   const opts = (list, sel) => list.map(([v, t]) => `<option value="${v}"${String(v) === String(sel ?? '') ? ' selected' : ''}>${t}</option>`).join('');
   const Q = [['', 'Exact date'], ['abt', 'About'], ['bef', 'Before'], ['aft', 'After'], ['bet', 'Between'], ['year', 'Only the year']];
+  const GREGORIAN_MONTHS = [['', 'Month (optional)'], ...MONTHS.map((name, i) => [i + 1, name])];
 
   function approxHtml(key, a) {
     a = a || {};
     return `<div class="mx-approx" data-approx="${key}">
       <label class="mx-inline"><span>If you don't know the exact date</span>
         <select class="mem-edit-select mx-q">${opts(Q, a.q || '')}</select></label>
+      <select class="mem-edit-select mx-am" aria-label="Approximate month"${a.q === 'abt' ? '' : ' hidden'}>${opts(GREGORIAN_MONTHS, a.m)}</select>
       <input type="number" class="mem-edit-input mx-y" min="1" max="2999" placeholder="Year" value="${a.y || ''}" ${a.q ? '' : 'hidden'} aria-label="Year">
       <input type="number" class="mem-edit-input mx-y2" min="1" max="2999" placeholder="and year" value="${a.y2 || ''}" ${a.q === 'bet' ? '' : 'hidden'} aria-label="Second year">
     </div>`;
@@ -189,7 +193,11 @@
     if (alive) alive.addEventListener('change', () => { modal.querySelector('#mxDeathExtra').hidden = alive.checked; });
     modal.querySelectorAll('.mx-approx').forEach(a => {
       const q = a.querySelector('.mx-q');
-      q.addEventListener('change', () => { a.querySelector('.mx-y').hidden = !q.value; a.querySelector('.mx-y2').hidden = q.value !== 'bet'; });
+      q.addEventListener('change', () => {
+        a.querySelector('.mx-am').hidden = q.value !== 'abt';
+        a.querySelector('.mx-y').hidden = !q.value;
+        a.querySelector('.mx-y2').hidden = q.value !== 'bet';
+      });
     });
     // the tithi of an exact date, shown beside the heading
     const autoT = (input, key) => {
@@ -251,8 +259,8 @@
     x.father_kind = v('#mxFatherKind'); x.mother_kind = v('#mxMotherKind');
     for (const key of ['birth', 'death']) {
       const a = modal.querySelector(`[data-approx="${key}"]`);
-      const q = a?.querySelector('.mx-q').value, y = Number(a?.querySelector('.mx-y').value), y2 = Number(a?.querySelector('.mx-y2').value);
-      x[key + '_approx'] = q && y ? { q, y, ...(q === 'bet' && y2 ? { y2 } : {}) } : null;
+      const q = a?.querySelector('.mx-q').value, y = Number(a?.querySelector('.mx-y').value), y2 = Number(a?.querySelector('.mx-y2').value), month = Number(a?.querySelector('.mx-am').value);
+      x[key + '_approx'] = q && y ? { q, y, ...(q === 'abt' && month >= 1 && month <= 12 ? { m: month } : {}), ...(q === 'bet' && y2 ? { y2 } : {}) } : null;
       const t = modal.querySelector(`[data-tithi="${key}"]`);
       const m = Number(t?.querySelector('.mx-m').value), p = t?.querySelector('.mx-p').value, d = Number(t?.querySelector('.mx-t').value), vs = Number(t?.querySelector('.mx-vs').value);
       x[key + '_tithi'] = m && p && d ? { m, p, t: d, ...(vs ? { vs } : {}) } : null;

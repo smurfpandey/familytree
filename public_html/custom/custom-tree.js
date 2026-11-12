@@ -1632,7 +1632,7 @@ class CustomTreeView extends FamilyTreeController {
     document.addEventListener('click', (e) => {
       const popover = document.getElementById('nodeCreatorPopover');
       if (popover && !popover.hidden) {
-        if (!e.target.closest('#nodeCreatorPopover') && !e.target.closest('.ct-handle') && !e.target.closest('.ct-empty-tree')) {
+        if (!e.target.closest('#nodeCreatorPopover') && !e.target.closest('.ct-handle') && !e.target.closest('.ct-empty-tree') && !e.target.closest('.btn-mp-inline-add')) {
           this.closeCreatorPopover();
         }
       }

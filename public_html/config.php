@@ -9,7 +9,7 @@
  */
 
 // The release, stamped on every script and style URL so browsers and CDNs refetch after an update
-define('FT_VERSION', '8.6.3');
+define('FT_VERSION', '8.6.4');
 
 // ── 1. Includes ────────────────────────────────────────────────────────────
 require_once __DIR__ . '/includes/db.php';   // ft_storage_dir(), ft_db_config_from_env()
