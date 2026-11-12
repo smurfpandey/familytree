@@ -2,9 +2,10 @@
  * FamilyTree Desktop - the web app in a window, with PHP and SQLite bundled.
  *
  * On first run it asks for a folder (pick one inside Google Drive, Dropbox or
- * OneDrive for free sync), writes the app's .env there with a SQLite database,
- * starts PHP's built-in server on a free local port and opens the installer.
- * Every later run just starts the server and opens the tree.
+ * OneDrive for free sync), starts PHP's built-in server on a free local port
+ * with a SQLite database there and opens the installer. Every later run just
+ * starts the server and opens the tree. No .env file: configuration is passed
+ * through the environment.
  */
 const { app, BrowserWindow, dialog, shell } = require('electron');
 const { spawn } = require('node:child_process');
@@ -31,25 +32,23 @@ async function chooseFolder() {
   return r.filePaths[0];
 }
 
-function ensureEnv(dataDir, port) {
-  const envFile = path.join(dataDir, '.env');
-  if (fs.existsSync(envFile)) return false;
-  const key = require('node:crypto').randomBytes(32).toString('hex');
-  fs.writeFileSync(envFile, [
-    '# FamilyTree Desktop. Your tree is the familytree.sqlite file next to this.',
-    'APP_ENV=desktop', `APP_DOMAIN=127.0.0.1:${port}`, `APP_URL=http://127.0.0.1:${port}`, `APP_KEY=${key}`,
-    'DB_DRIVER=sqlite', `DB_FILE=${path.join(dataDir, 'familytree.sqlite')}`,
-    'MAIL_FROM_NAME=FamilyTree', '',
-  ].join('\n'));
-  return true;
+function dbPath(dataDir) {
+  return process.env.DB_FILE || path.join(dataDir, 'familytree.sqlite');
 }
 
 async function startPhp(dataDir) {
   const port = await freePort();
-  const fresh = ensureEnv(dataDir, port);
-  // the app reads .env from its own folder: point it at the data folder through FT_ENV_FILE
+  const fresh = !fs.existsSync(dbPath(dataDir));
   php = spawn(PHP_BIN, ['-S', `127.0.0.1:${port}`, '-t', APP_DIR, path.join(APP_DIR, '..', 'tools', 'router.php')], {
-    env: { ...process.env, FT_DESKTOP: '1', FT_ENV_FILE: path.join(dataDir, '.env'), FT_STORAGE_DIR: dataDir },
+    env: {
+      ...process.env,
+      FT_DESKTOP: '1',
+      FT_STORAGE_DIR: dataDir,
+      DB_DRIVER: 'sqlite',
+      DB_FILE: dbPath(dataDir),
+      APP_DOMAIN: `127.0.0.1:${port}`,
+      APP_URL: `http://127.0.0.1:${port}`,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   php.stderr.on('data', d => process.stderr.write(d));

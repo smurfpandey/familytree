@@ -4,8 +4,6 @@
  */
 const DH_KINDS = {
     here:     { label: 'FamilyTree’s database', note: 'Nothing to set up. Your data lives with this site.' },
-    mysql:    { label: 'My own MySQL / MariaDB', note: 'Any host you control, including free tiers (Aiven, PlanetScale, your hosting plan).' },
-    pgsql:    { label: 'My own Postgres', note: 'Neon, Supabase and others have free tiers.' },
     sqlite:   { label: 'A SQLite file on this server', note: 'One file inside the storage folder. Good for a self-hosted single family.' },
     sheets:   { label: 'A Google Sheet', note: 'Free. Two tabs, Members and Media, that your family can also open and edit by hand.' },
     airtable: { label: 'An Airtable base', note: 'Free up to 1,000 records per base.' },
@@ -21,12 +19,6 @@ function dhForm(kind, c) {
     const secret = (v) => v === '••••••' ? '' : (v || '');
     const keep = _dh.kind === kind ? 'leave blank to keep the saved one' : '';
     switch (kind) {
-        case 'mysql': case 'pgsql': return `
-            <div class="dh-grid">${dhField('Host', 'host', 'text', c.host || '', '')}${dhField('Port', 'port', 'number', c.port || (kind === 'pgsql' ? 5432 : 3306), '')}</div>
-            ${dhField('Database name', 'name', 'text', c.name || '', '')}
-            <div class="dh-grid">${dhField('User', 'user', 'text', c.user || '', '')}${dhField('Password', 'pass', 'password', '', keep)}</div>
-            <label class="dh-check"><input type="checkbox" name="ssl" ${c.ssl ? 'checked' : ''}> Connect over TLS (most managed hosts)</label>
-            <p class="dh-hint">Your database user needs CREATE TABLE once (press <b>Set up</b>), then SELECT, INSERT, UPDATE, DELETE.</p>`;
         case 'sqlite': return dhField('File', 'file', 'text', c.file || '', 'Inside the storage folder; leave blank for a default name');
         case 'json':   return dhField('File', 'file', 'text', c.file || '', 'Inside the storage folder; leave blank for a default name');
         case 'sheets': return `
@@ -81,8 +73,7 @@ async function loadDataHome() {
         if (d.error) { dhMsg(d.error, false); return; }
         _dh = { kind: d.kind, config: d.config || {}, pick: null };
         st.innerHTML = `Now: <b>${DH_KINDS[d.kind]?.label || d.kind}</b> · ${d.counts ? `${d.counts.members} members, ${d.counts.media} photos` : ''}`
-                     + (d.status === 'error' ? ` <span class="bad">· not reachable: ${d.message}</span>` : '')
-                     + (!d.has_app_key && d.kind !== 'here' ? ' <span class="bad">· set APP_KEY in .env so saved passwords are encrypted</span>' : '');
+                     + (d.status === 'error' ? ` <span class="bad">· not reachable: ${d.message}</span>` : '');
         dhRender();
     } catch (e) { dhMsg('Could not load: ' + e.message, false); }
 }

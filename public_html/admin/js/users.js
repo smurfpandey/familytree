@@ -165,6 +165,11 @@ function fillUserForm(u) {
 
 async function editUser(id) {
     try {
+        // The Linked Member dropdown is built from the shared members array;
+        // make sure it is populated even when Users is opened first.
+        if (!members.length && typeof fetchMembers === 'function') {
+            await fetchMembers();
+        }
         const res = await csrfFetch('users-api.php?id=' + encodeURIComponent(id));
         const u = await res.json();
         if (u.error) {

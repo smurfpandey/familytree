@@ -2,7 +2,7 @@
 /**
  * cron.php - the weekly jobs. Run once a week (Monday morning is good):
  *   php /path/to/public_html/cron.php weekly          (a hosting cron job)
- *   https://your-site/cron.php?key=CRON_KEY           (or a web cron, with CRON_KEY set in .env)
+ *   https://your-site/cron.php?key=CRON_KEY           (or a web cron, with CRON_KEY in the environment)
  *
  *   1. the email digest of the coming week, to everyone with an account who hasn't turned it off
  *   2. a backup of every tree into storage/backups/{tree}/, the last 8 kept
@@ -16,7 +16,7 @@ $cli = PHP_SAPI === 'cli';
 if (!$cli) {
     require_once __DIR__ . '/config.php';
     $key = (string)getenv('CRON_KEY');
-    if ($key === '' || !hash_equals($key, (string)($_GET['key'] ?? ''))) { http_response_code(403); exit('Set CRON_KEY in .env and pass it as ?key='); }
+    if ($key === '' || !hash_equals($key, (string)($_GET['key'] ?? ''))) { http_response_code(403); exit('Set CRON_KEY in the environment and pass it as ?key='); }
     header('Content-Type: text/plain; charset=utf-8');
 } else {
     $_SERVER['HTTP_HOST'] ??= getenv('APP_DOMAIN') ?: 'localhost';

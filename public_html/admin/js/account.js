@@ -95,7 +95,7 @@ function changePassword() {
 
 function confirmLogoutAll() {
     if (!confirm('This will end all active sessions and log you out. Continue?')) return;
-    window.location.href = 'index.php?logout=1';
+    window.location.href = '?logout=1';
 }
 
 /* ── Alert helpers ─────────────────────────────────────────────── */

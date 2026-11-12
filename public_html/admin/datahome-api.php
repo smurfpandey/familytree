@@ -9,8 +9,9 @@ if (!defined('FT_APP')) define('FT_APP', 1);
  *   POST {action:'save',  config, copy:bool} switch the tree to it, optionally copying the data across (ids kept)
  *   POST {action:'reset', copy:bool}         back to the app's database
  *
- * Owner only. Secrets (passwords, keys, tokens) are stored encrypted with APP_KEY
- * and never sent back; a saved config can be re-used by leaving them blank.
+ * Owner only. Secrets (passwords, keys, tokens) are stored encrypted with the
+ * key in storage/app.key and never sent back; a saved config can be re-used by
+ * leaving them blank.
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
@@ -37,7 +38,7 @@ function ft_merge_secrets(array $cfg, array $saved): array {
 }
 function ft_clean_config(array $in): array {
     $type = $in['type'] ?? 'here';
-    $allowed = ['here', 'mysql', 'pgsql', 'sqlite', 'sheets', 'airtable', 'json'];
+    $allowed = ['here', 'sqlite', 'sheets', 'airtable', 'json'];
     if (!in_array($type, $allowed, true)) throw new InvalidArgumentException('Unknown data home');
     $c = ['type' => $type];
     foreach (['host', 'port', 'name', 'user', 'pass', 'ssl', 'file', 'sheet_id', 'service_account', 'base_id', 'token'] as $k) if (isset($in[$k]) && $in[$k] !== '') $c[$k] = is_bool($in[$k]) ? $in[$k] : trim((string)$in[$k]);
@@ -60,7 +61,7 @@ function ft_counts(FamilyStore $s): array { return ['members' => $s->countMember
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $out = ['config' => ft_mask($current), 'kind' => $current['type'], 'here' => ft_counts(new PdoFamilyStore($pdo, $tenantId, 'here')), 'has_app_key' => (bool)getenv('APP_KEY'), 'desktop' => (bool)getenv('FT_DESKTOP')];
+        $out = ['config' => ft_mask($current), 'kind' => $current['type'], 'here' => ft_counts(new PdoFamilyStore($pdo, $tenantId, 'here')), 'desktop' => (bool)getenv('FT_DESKTOP')];
         try { $s = ft_store($pdo, $tenant); $s->check(); $out['status'] = 'ok'; $out['counts'] = ft_counts($s); }
         catch (Throwable $e) { $out['status'] = 'error'; $out['message'] = $e->getMessage(); }
         echo json_encode($out); exit;

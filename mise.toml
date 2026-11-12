@@ -1,0 +1,78 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+# Toolchains for FamilyTree development. Run `mise install` once, then use
+# `mise run <task>` (see the [tasks] below or `mise tasks`).
+#
+# PHP is built from source by mise, so the app's PHP extensions need their
+# system libraries (freetype, libjpeg, libpng, libwebp, libzip, curl, openssl,
+# sqlite, oniguruma, gettext, libxml2). On Alpine, also add the build toolchain:
+# gcc, make, autoconf, re2c, bison, pkgconf, musl-dev.
+# On macOS and common Linux distros mise installs those itself with
+# system_deps = "auto". The same extension set is what CI (ci.yml) and the
+# Containerfile use.
+[tools]
+php = "8.5"     # the app needs 8.1+; CI also checks 8.3
+node = "26"     # active LTS
+python = "3.15"
+
+[settings]
+system_deps = "auto"
+# prefer prebuilt binaries over source builds (avoids needing a C toolchain;
+# on Alpine this opts into the official musl builds)
+node.compile = false
+python.compile = false
+
+[env]
+# the repo needs gd with jpeg/webp/freetype for photo thumbnails and share
+# cards; PHP's bundled gd only builds those in when the flags are passed
+PHP_EXTRA_CONFIGURE_OPTIONS = "--with-jpeg --with-webp --with-freetype"
+
+# ----- day to day -----
+
+[tasks.dev]
+description = "Serve public_html on 127.0.0.1:8080 with the pretty-URL router"
+run = "php -S 127.0.0.1:8080 -t public_html tools/router.php"
+
+# ----- CI parity (same commands as .github/workflows/ci.yml) -----
+
+[tasks.lint]
+description = "php -l every PHP file, node --check every app JS file"
+run = """
+find . -name '*.php' -not -path './public_html/admin/uploads/*' -not -path './desktop/php/*' -print0 | xargs -0 -n1 -P4 php -l
+find public_html -name '*.js' -not -name '*.min.js' -not -path '*/vendor/*' -not -path 'public_html/admin/uploads/*' -print0 | xargs -0 -n1 node --check
+"""
+
+[tasks.test]
+description = "PHP and Node unit tests"
+run = """
+for t in tools/test-*.php; do php -d zend.assertions=1 -d assert.exception=1 "$t"; done
+for t in tools/test-*.mjs; do node "$t"; done
+"""
+
+[tasks.smoke]
+description = "SQLite install in a temp dir, serve it, check the main pages"
+run = "php tools/smoke.php"
+
+[tasks.check]
+description = "Everything CI runs: lint, then tests, then smoke"
+depends = ["lint", "test", "smoke"]
+
+# ----- less frequent -----
+
+[tasks.schema]
+description = "Regenerate public_html/install/schema-sqlite.sql from schema.sql"
+run = "python tools/make-sqlite-schema.py"
+
+[tasks.emblems]
+description = "Re-rasterise emblem PNGs (needs `npx playwright install chromium` once)"
+run = "node tools/render-emblems.mjs"
+
+[tasks."desktop:install"]
+description = "Install desktop/ Electron dependencies"
+dir = "desktop"
+run = "npm install"
+
+[tasks."desktop:start"]
+description = "Run the Electron desktop app"
+dir = "desktop"
+run = "npm start"

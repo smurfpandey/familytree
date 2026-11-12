@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/mailer.php';
 
 // Already logged in? No need to be here
 if (!empty($_SESSION['admin_logged_in'])) {
-    header('Location: index.php');
+    header('Location: ./');
     exit;
 }
 
@@ -85,7 +85,7 @@ $authLede = 'Pick up where you left off: new photos, birthdays this week, and th
   <main class="auth-main">
     <div class="auth-top">
       <a href="/" class="auth-brand"><svg width="26" height="26" viewBox="3 3 22 23.5" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 25V15.5M14 21l-5.2-5.2M14 18.5l5.2-5.2M14 15.5V9.6M9.5 25h9"/><circle cx="7.2" cy="14.2" r="2.4"/><circle cx="20.8" cy="11.7" r="2.4"/><circle cx="14" cy="7" r="2.4"/></g></svg>FamilyTree</a>
-      <span class="auth-top-link">Remembered it? <a href="index.php">Log in</a></span>
+      <span class="auth-top-link">Remembered it? <a href="./">Log in</a></span>
     </div>
 
 <?php if ($submitted): ?>
@@ -94,7 +94,7 @@ $authLede = 'Pick up where you left off: new photos, birthdays this week, and th
       <h1>Check your email</h1>
       <p>If an account exists for that email address, we've sent a password reset link. It expires in <strong>1 hour</strong>.</p>
       <p class="hint">Didn't get it? Check your spam folder.</p>
-      <p class="alt"><a href="index.php">Back to log in</a></p>
+      <p class="alt"><a href="./">Back to log in</a></p>
     </div>
 <?php else: ?>
     <div class="auth-box">
@@ -113,7 +113,7 @@ $authLede = 'Pick up where you left off: new photos, birthdays this week, and th
         </div>
         <button type="submit" class="btn-main">Send reset link</button>
       </form>
-      <p class="alt"><a href="index.php">Back to log in</a></p>
+      <p class="alt"><a href="./">Back to log in</a></p>
     </div>
 <?php endif; ?>
   </main>

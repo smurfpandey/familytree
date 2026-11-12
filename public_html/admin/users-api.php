@@ -42,18 +42,46 @@ function sanitizePermissions($value) {
     return null;
 }
 
+/** A linked member must belong to the tree the user is being edited in. */
+function memberBelongsToTenant(PDO $pdo, ?int $memberId, string $tenantId): bool {
+    if (!$memberId) return true;
+    try {
+        $st = $pdo->prepare("SELECT 1 FROM family_tree_data WHERE id = ? AND tenant_id = ? LIMIT 1");
+        $st->execute([$memberId, $tenantId]);
+        return (bool)$st->fetchColumn();
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
 if ($method === 'GET') {
     if ($id) {
-        // Single user – must belong to the same tenant
+        // Single user – must belong to the same tenant. Role, permissions and
+        // linked member come from the per-tree membership row when it exists,
+        // matching the list query below.
         $stmt = $pdo->prepare("
-            SELECT u.*, m.name AS member_name, m.nickname AS member_nickname, m.img AS member_img
+            SELECT u.*,
+                   tu.id          AS tu_id,
+                   tu.role        AS tu_role,
+                   tu.permissions AS tu_permissions,
+                   tu.member_id   AS tu_member_id,
+                   m.name AS member_name, m.nickname AS member_nickname, m.img AS member_img
             FROM family_users u
-            LEFT JOIN family_tree_data m ON u.member_id = m.id AND m.tenant_id = ?
+            LEFT JOIN tenant_users tu ON tu.tenant_id = u.tenant_id AND tu.user_id = u.id
+            LEFT JOIN family_tree_data m
+              ON m.id = COALESCE(tu.member_id, u.member_id) AND m.tenant_id = u.tenant_id
             WHERE u.id = ? AND u.tenant_id = ?
+            LIMIT 1
         ");
-        $stmt->execute([$tenantId, $id, $tenantId]);
+        $stmt->execute([$id, $tenantId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row) {
+            if ($row['tu_id'] !== null) {
+                $row['role']        = $row['tu_role'] ?: $row['role'];
+                $row['permissions'] = $row['tu_permissions'] ?? $row['permissions'];
+                $row['member_id']   = $row['tu_member_id'] ?? $row['member_id'];
+            }
+            unset($row['tu_id'], $row['tu_role'], $row['tu_permissions'], $row['tu_member_id']);
             $row['permissions'] = $row['permissions'] ? json_decode($row['permissions'], true) : null;
         }
         echo json_encode($row ?: ['error' => 'Not found']);
@@ -65,15 +93,18 @@ if ($method === 'GET') {
         try {
             $stmt = $pdo->prepare("
                 SELECT u.id, u.email, u.display_name, u.created_at, u.last_login_at,
-                       tu.role, tu.permissions, tu.member_id,
+                       COALESCE(tu.role, u.role)             AS role,
+                       COALESCE(tu.permissions, u.permissions) AS permissions,
+                       COALESCE(tu.member_id, u.member_id)   AS member_id,
                        m.name AS member_name, m.nickname AS member_nickname, m.img AS member_img
-                FROM tenant_users tu
-                JOIN family_users u ON u.id = tu.user_id
-                LEFT JOIN family_tree_data m ON m.id = tu.member_id AND m.tenant_id = ?
-                WHERE tu.tenant_id = ?
+                FROM family_users u
+                LEFT JOIN tenant_users tu ON tu.tenant_id = ? AND tu.user_id = u.id
+                LEFT JOIN family_tree_data m
+                  ON m.id = COALESCE(tu.member_id, u.member_id) AND m.tenant_id = ?
+                WHERE tu.id IS NOT NULL OR u.tenant_id = ?
                 ORDER BY u.id
             ");
-            $stmt->execute([$tenantId, $tenantId]);
+            $stmt->execute([$tenantId, $tenantId, $tenantId]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             // Legacy fallback (pre-migration)
@@ -116,6 +147,12 @@ if ($method === 'POST') {
     if ($email === '' || $displayName === '' || $password === '') {
         http_response_code(400);
         echo json_encode(['error' => 'Email, display_name and password are required']);
+        exit;
+    }
+
+    if (!memberBelongsToTenant($pdo, $memberId, $tenantId)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Linked member not found in this tree']);
         exit;
     }
 
@@ -189,6 +226,12 @@ if ($method === 'POST') {
     $memberId    = array_key_exists('member_id', $input) ? (int)$input['member_id'] : null;
     $permissions = array_key_exists('permissions', $input) ? sanitizePermissions($input['permissions']) : null;
 
+    if ($memberId !== null && !memberBelongsToTenant($pdo, $memberId ?: null, $tenantId)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Linked member not found in this tree']);
+        exit;
+    }
+
     $fields = [];
     $params = [];
 
@@ -252,6 +295,39 @@ if ($method === 'POST') {
         http_response_code(500);
         echo json_encode(['error' => 'DB error']);
         exit;
+    }
+
+    // The users list and other tools read role/permissions/member_id from the
+    // per-tree membership row, so keep tenant_users in step with family_users.
+    // family_users stays updated too because login and My Profile read it.
+    try {
+        $pdo->prepare("INSERT IGNORE INTO tenant_users (tenant_id, user_id, role, permissions, member_id)
+                       SELECT tenant_id, id, role, permissions, member_id
+                       FROM family_users WHERE id = ? AND tenant_id = ?")
+            ->execute([$id, $tenantId]);
+
+        $tuFields = [];
+        $tuParams = [];
+        if ($role !== null) {
+            $tuFields[] = 'role = ?';
+            $tuParams[] = $role;
+        }
+        if ($permissions !== null) {
+            $tuFields[] = 'permissions = ?';
+            $tuParams[] = $permissions ? json_encode($permissions) : null;
+        }
+        if (array_key_exists('member_id', $input)) {
+            $tuFields[] = 'member_id = ?';
+            $tuParams[] = $memberId ?: null;
+        }
+        if ($tuFields) {
+            $tuParams[] = $tenantId;
+            $tuParams[] = $id;
+            $pdo->prepare("UPDATE tenant_users SET " . implode(', ', $tuFields) . " WHERE tenant_id = ? AND user_id = ?")
+                ->execute($tuParams);
+        }
+    } catch (PDOException $e) {
+        // pre-migration database without tenant_users; family_users is already updated
     }
 
     $stmt = $pdo->prepare("SELECT * FROM family_users WHERE id = ? AND tenant_id = ?");

@@ -148,8 +148,8 @@ $csrfToken = $_SESSION['csrf_token'] ?? '';
 
   <link rel="stylesheet" href="/assets/style.css?v=<?= FT_VERSION ?>">
 
-  <!-- D3 v7 — tree renderer + events timeline -->
-  <script defer src="https://d3js.org/d3.v7.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+  <!-- D3 v7.9.2 (vendored) — tree renderer + events timeline. Self-hosted so the viewer works offline and d3js.org rebuilds can't break the SRI pin. -->
+  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_VERSION ?>"></script>
   <?php if ($view === 'map'): ?>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous"></script>

@@ -3,6 +3,16 @@
 // with the correct session name ('family_tree_session') and cookie params
 require_once 'config.php';
 
+// Canonical admin address: /admin/ rather than /admin/index.php. GET only, so
+// the login POST keeps working when the form was opened at the old URL.
+$reqPath  = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+$adminDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/');
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && $reqPath !== '' && $reqPath === $adminDir . '/index.php') {
+    $qs = $_SERVER['QUERY_STRING'] ?? '';
+    header('Location: ' . $adminDir . '/' . ($qs !== '' ? '?' . $qs : ''), true, 301);
+    exit;
+}
+
 // Login using family_users table
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $tok = $_POST['csrf_token'] ?? '';
@@ -39,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
             $tenantId = !empty($user['tenant_id'])
                 ? $user['tenant_id']
-                : (getenv('APP_TENANT_ID') ?: '');
+                : ft_default_tenant_id();
 
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['tenant_id']       = $tenantId;
@@ -54,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 'tenant_id'    => $tenantId,
             ];
 
-            $redirect = !empty($_GET['welcome']) ? 'index.php?welcome=1' : 'index.php';
+            $redirect = $adminDir . '/' . (!empty($_GET['welcome']) ? '?welcome=1' : '');
             header('Location: ' . $redirect);
             exit;
         }
@@ -64,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
 if (isset($_GET['logout'])) {
     session_destroy();
-    header('Location: index.php');
+    header('Location: ' . $adminDir . '/');
     exit;
 }
 
@@ -193,7 +203,7 @@ document.getElementById('loginForm').addEventListener('submit', function () {
     <aside class="sidebar" id="sidebar">
 
         <!-- Logo -->
-        <a href="#" class="sb-logo" aria-label="FamilyTree Admin, go to dashboard" onclick="showPage('dashboard');return false;">
+        <a href="./" class="sb-logo" aria-label="FamilyTree Admin, go to dashboard" onclick="showPage('dashboard');return false;">
             <span class="sb-logo-icon"><?= ft_logo(30) ?></span>
             <div>
                 <span class="sb-logo-text">FamilyTree</span>
@@ -583,21 +593,40 @@ document.addEventListener('click', function(e) {
 
 // ── Page navigation ───────────────────────────────────────
 var _pageInitDone = {};
+var _tidyFocus = null;
 
-function showPage(page) {
-    var pages = ['dashboard','members','users','photos','tidy','settings','activity','account'];
-    var titles = {
-        dashboard: 'Dashboard',
-        members:   'Members',
-        users:     'Users',
-        photos:    'Photos & Media',
-        tidy:      'Tidy up',
-        settings:  'Tree Settings',
-        activity:  'Activity Log',
-        account:   'My Profile'
-    };
+var ADMIN_PAGES = ['dashboard','members','users','photos','tidy','settings','activity','account'];
+var ADMIN_TITLES = {
+    dashboard: 'Dashboard',
+    members:   'Members',
+    users:     'Users',
+    photos:    'Photos & Media',
+    tidy:      'Tidy up',
+    settings:  'Tree Settings',
+    activity:  'Activity Log',
+    account:   'My Profile'
+};
 
-    pages.forEach(function(p) {
+/** Read #page or #tidy/member/12 from the address bar. */
+function pageFromHash() {
+    var m = (location.hash || '').match(/^#([a-z]+)(?:\/member\/(\d+))?\/?$/i);
+    var page = m ? m[1].toLowerCase() : 'dashboard';
+    if (ADMIN_PAGES.indexOf(page) === -1) page = 'dashboard';
+    return { page: page, member: m && m[2] ? Number(m[2]) : null };
+}
+
+/** The hash for a page; the dashboard keeps the clean /admin/ URL. */
+function hashFor(page, member) {
+    if (page === 'dashboard') return '';
+    return '#' + page + (page === 'tidy' && member ? '/member/' + member : '');
+}
+
+function showPage(page, opts) {
+    opts = opts || {};
+    if (ADMIN_PAGES.indexOf(page) === -1) page = 'dashboard';
+    var member = page === 'tidy' ? (opts.member || null) : null;
+
+    ADMIN_PAGES.forEach(function(p) {
         var el = document.getElementById('page' + capitalize(p));
         var nav = document.getElementById('nav' + capitalize(p));
         if (el)  el.classList.toggle('active', p === page);
@@ -605,10 +634,22 @@ function showPage(page) {
     });
 
     var titleEl = document.getElementById('topBarTitle');
-    if (titleEl) titleEl.textContent = titles[page] || page;
+    if (titleEl) titleEl.textContent = ADMIN_TITLES[page] || page;
+    document.title = (ADMIN_TITLES[page] || page) + ' · FamilyTree';
 
     // Close mobile sidebar
     document.getElementById('sidebar')?.classList.remove('sb-open');
+
+    // Keep the address bar in step. User navigation pushes a history entry;
+    // the first render and Back/Forward update it in place.
+    if (opts.syncUrl !== false) {
+        var hash = hashFor(page, member);
+        var url  = location.pathname + location.search + hash;
+        if (location.hash !== hash) {
+            if (opts.replace) history.replaceState({ page: page }, '', url);
+            else history.pushState({ page: page }, '', url);
+        }
+    }
 
     // Lazy load page data
     if (!_pageInitDone[page]) {
@@ -623,6 +664,9 @@ function showPage(page) {
                 if (typeof setFormHeader === 'function') setFormHeader(null);
                 break;
             case 'users':
+                // The Linked Member picker needs the member list, which is
+                // otherwise only fetched when the Members page is opened.
+                if (typeof fetchMembers === 'function' && members.length === 0) fetchMembers();
                 if (typeof fetchUsers === 'function') fetchUsers();
                 break;
             case 'photos':
@@ -634,7 +678,8 @@ function showPage(page) {
                 if (typeof loadEmblem === 'function') loadEmblem();
                 break;
             case 'tidy':
-                if (typeof loadTidy === 'function') loadTidy(window._adminHashMember || null);
+                _tidyFocus = member;
+                if (typeof loadTidy === 'function') loadTidy(member);
                 break;
             case 'activity':
                 if (typeof loadActivity === 'function') loadActivity();
@@ -644,6 +689,10 @@ function showPage(page) {
                 if (typeof loadKeys === 'function') loadKeys();
                 break;
         }
+    } else if (page === 'tidy' && member !== _tidyFocus) {
+        // A deep link to one person's history, or back to the whole tree.
+        _tidyFocus = member;
+        if (typeof loadTidy === 'function') loadTidy(member);
     }
 }
 
@@ -658,12 +707,19 @@ function showTab(tab) {
     showPage(map[tab] || tab);
 }
 
-// ── Init: #page or #tidy/member/12 opens that page ───────
+// ── Routing: first load, Back/Forward and manual hash edits ─
+function routeFromUrl() {
+    var r = pageFromHash();
+    showPage(r.page, { syncUrl: false, member: r.member });
+}
+
 (function () {
-    var m = location.hash.match(/^#(\w+)(?:\/member\/(\d+))?/);
-    window._adminHashMember = m && m[2] ? Number(m[2]) : null;
-    showPage(m && document.getElementById('page' + capitalize(m[1])) ? m[1] : 'dashboard');
+    var r = pageFromHash();
+    showPage(r.page, { replace: true, member: r.member });
 })();
+
+window.addEventListener('popstate', routeFromUrl);
+window.addEventListener('hashchange', routeFromUrl);
 </script>
 <?php endif; ?>
 

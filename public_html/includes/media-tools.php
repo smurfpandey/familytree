@@ -1,7 +1,7 @@
 <?php
 /**
  * includes/media-tools.php - photos are resized and stripped of camera data on upload, and each
- * tree has a storage cap (FT_TREE_STORAGE_MB in .env, default 1024).
+ * tree has a storage cap (FT_TREE_STORAGE_MB, default 1024).
  */
 
 /** the storage cap of one tree, in bytes */

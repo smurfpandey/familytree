@@ -1,37 +1,18 @@
 <?php
 /**
  * config.php  –  Single shared configuration for all PHP files
- * Phase 0 hardened version: credentials via .env, CSRF, security headers
+ * CSRF, security headers, database connection.
  *
- * IMPORTANT: After rotating your DB password on Hostinger, update .env only.
- * Never put credentials directly in this file.
+ * There is no .env file. Every setting has a sensible default, and Docker
+ * Compose (or the desktop app) can override any of them through the
+ * environment. See docker-compose.yml for the optional keys.
  */
 
 // The release, stamped on every script and style URL so browsers and CDNs refetch after an update
-define('FT_VERSION', '8.6.0');
+define('FT_VERSION', '8.6.3');
 
-// ── 1. Load .env (pure-PHP, no Composer required) ──────────────────────────
-function loadEnv(string $path): void {
-    if (!file_exists($path)) {
-        error_log('.env file not found at: ' . $path);
-        return;
-    }
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if ($line === '' || $line[0] === '#') continue;   // skip comments
-        if (strpos($line, '=') === false) continue;
-        [$key, $value] = explode('=', $line, 2);
-        $key   = trim($key);
-        $value = trim($value);
-        if (!array_key_exists($key, $_ENV)) {
-            $_ENV[$key] = $value;
-            putenv("$key=$value");
-        }
-    }
-}
-define('FT_ENV_FILE', getenv('FT_ENV_FILE') ?: __DIR__ . '/.env');
-loadEnv(FT_ENV_FILE);
+// ── 1. Includes ────────────────────────────────────────────────────────────
+require_once __DIR__ . '/includes/db.php';   // ft_storage_dir(), ft_db_config_from_env()
 
 // ── 2. Session (secure, single start) ─────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
@@ -61,31 +42,40 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ── 3. Database connection ─────────────────────────────────────────────────
-// MySQL / MariaDB by default; DB_DRIVER=sqlite (DB_FILE=...) for the desktop app and
-// small self-hosts. See includes/db.php. With no .env at all, the installer takes over.
-require_once __DIR__ . '/includes/db.php';
-if (!file_exists(FT_ENV_FILE) && !defined('FT_INSTALLER')) {
-    $isInstall = str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/install/');
-    if (!$isInstall) { header('Location: /install/'); exit; }
-}
-try {
-    $pdo = ft_connect(ft_db_config_from_env());
-    // SQLite installs (and the desktop app) upgrade themselves: the schema file is safe to re-run,
-    // so run it once per version. MySQL installs use install/upgrades/ by hand.
-    if (file_exists(FT_ENV_FILE) && $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-        $mark = ft_storage_dir() . '/schema-version';
-        if (@file_get_contents($mark) !== FT_VERSION) {
-            ft_run_sql_file($pdo, ft_schema_file('sqlite'));
-            @file_put_contents($mark, FT_VERSION, LOCK_EX);
+// Self-hosted FamilyTree is SQLite: storage/familytree.sqlite (DB_FILE can override).
+// "Installed" means that file holds a family (a tenant). Until it does, every
+// request is sent to the installer.
+$pdo       = null;
+$dbConfig  = ft_db_config_from_env();
+$installed = false;
+
+if ($dbConfig['driver'] !== 'sqlite' || is_file($dbConfig['file'] ?? '')) {
+    try {
+        $pdo = ft_connect($dbConfig);
+    } catch (PDOException $e) {
+        error_log('Database connection failed: ' . $e->getMessage());
+        if (!defined('FT_INSTALLER')) {
+            http_response_code(503);
+            die(json_encode(['error' => 'Service temporarily unavailable']));
         }
     }
-} catch (PDOException $e) {
-    error_log('Database connection failed: ' . $e->getMessage());
-    if (!defined('FT_INSTALLER')) {
-        http_response_code(503);
-        die(json_encode(['error' => 'Service temporarily unavailable']));
+    if ($pdo instanceof PDO) {
+        try { $installed = (bool)$pdo->query('SELECT 1 FROM tenants LIMIT 1')->fetchColumn(); }
+        catch (PDOException $e) { $installed = false; }   // no schema yet
     }
-    $pdo = null;
+}
+if (!$installed && !defined('FT_INSTALLER') && !str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/install/')) {
+    header('Location: /install/');
+    exit;
+}
+// SQLite installs (and the desktop app) upgrade themselves: the schema file is
+// safe to re-run, so run it once per version.
+if ($installed && $pdo instanceof PDO && $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+    $mark = ft_storage_dir() . '/schema-version';
+    if (@file_get_contents($mark) !== FT_VERSION) {
+        ft_run_sql_file($pdo, ft_schema_file('sqlite'));
+        @file_put_contents($mark, FT_VERSION, LOCK_EX);
+    }
 }
 
 // ── 4. Security headers ────────────────────────────────────────────────────
@@ -188,25 +178,37 @@ function sanitizeInput($input, string $type = 'string') {
 
 // ── 10. Tenant resolution ─────────────────────────────────────────────────
 /**
- * Returns the tenant_id for the current ADMIN session.
- * Exits with 403 if the session has no tenant_id (shouldn't happen after login).
+ * The family this install serves: APP_TENANT_ID when set, otherwise the only
+ * tenant in SQLite. A single-family self-host never needs to configure it.
  */
+function ft_default_tenant_id(): string {
+    static $id = null;
+    if ($id !== null) return $id;
+    $id = (string)(getenv('APP_TENANT_ID') ?: '');
+    if ($id === '') {
+        global $pdo;
+        if ($pdo instanceof PDO) {
+            try { $id = (string)($pdo->query('SELECT id FROM tenants ORDER BY created_at, id LIMIT 1')->fetchColumn() ?: ''); }
+            catch (Throwable $e) { $id = ''; }
+        }
+    }
+    return $id;
+}
+
+/** Returns the tenant_id for the current ADMIN session, or the default family. */
 function getAdminTenantId(): string {
     if (!empty($_SESSION['tenant_id'])) {
         return (string)$_SESSION['tenant_id'];
     }
-    // Fallback: if old session predates Phase 2, derive from env / hardcoded default
-    $envTenant = getenv('APP_TENANT_ID') ?: '';
-    return $envTenant;
+    return ft_default_tenant_id();
 }
 
 /**
  * Returns the tenant_id for PUBLIC (unauthenticated) requests.
- * Reads APP_TENANT_ID from .env; empty when there is no default tree.
- * Future: resolve from subdomain or request header for full multi-tenancy.
+ * APP_TENANT_ID if set, otherwise the only family in SQLite.
  */
 function getPublicTenantId(): string {
-    return getenv('APP_TENANT_ID') ?: '';
+    return ft_default_tenant_id();
 }
 
 /**

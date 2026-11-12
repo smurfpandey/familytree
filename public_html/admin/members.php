@@ -1,9 +1,9 @@
 <?php // admin/members.php ?>
 <div class="page-title-bar">
     <h2>Members</h2>
-    <button class="btn btn-primary" type="button" id="newMemberBtn" onclick="startNew()">+ Add Member</button>
+    <button class="btn btn-primary" type="button" id="newMemberBtn" aria-controls="memberFormPanel" aria-expanded="false" onclick="startNew()">+ Add Member</button>
 </div>
-<div id="tabMembersContent" class="grid">
+<div id="tabMembersContent" class="grid form-hidden">
     <!-- TABLE SECTION -->
     <section class="table-wrap">
         <div class="table-toolbar">
@@ -35,7 +35,6 @@
                     </div>
                 </div>
                 <button class="btn btn-ghost" type="button" onclick="openImport()">Import</button>
-                <button class="btn btn-primary" type="button" onclick="startNew()">New</button>
             </div>
         </div>
         <div class="table-scroll">
@@ -59,14 +58,15 @@
         </div>
     </section>
 
-    <!-- FORM SECTION -->
-    <section class="form-wrap">
+    <!-- FORM SECTION (hidden until Add Member or a table row is clicked) -->
+    <section class="form-wrap" id="memberFormPanel" hidden>
         <div class="form-header">
             <img id="memberAvatar" src="" alt="" style="display:none;">
             <div class="form-header-text">
                 <h3 id="formTitle">Add <span style="font-weight:600;">Member</span></h3>
                 <small id="formSubtitle"></small>
             </div>
+            <button type="button" class="form-close" onclick="closeMemberForm()" aria-label="Close member form">&times;</button>
         </div>
         <div id="quickAddBar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 4px;padding:8px 10px;background:var(--accent-light);border:1px solid var(--border);border-radius:8px;font-size:12px;">
             <span>Quick add relative of <b id="quickAddName"></b>:</span>

@@ -1,37 +1,31 @@
 services:
   app:
-    build: .
+    # Published multi-arch image. Override FT_IMAGE to use your own registry,
+    # or run `docker compose up -d --build` to build Containerfile locally.
+    image: ${FT_IMAGE:-ghcr.io/smurfpandey/familytree:latest}
+    build:
+      context: .
+      dockerfile: Containerfile
     ports:
-      - "8080:80"
-    environment:
-      # the installer writes .env; these only pre-fill the database step
-      FT_DB_HOST: db
-      FT_DB_NAME: familytree
-      FT_DB_USER: familytree
-      FT_DB_PASS: familytree
+      - "8088:80"
+    # Every setting is optional: the defaults suit one family on one host.
+    # Uncomment what you need. There is no .env file.
+    # environment:
+    #   APP_DOMAIN: family.example.com
+    #   APP_URL: https://family.example.com
+    #   APP_TENANT_ID: 00000000-0000-0000-0000-000000000000
+    #   MAIL_FROM_NAME: FamilyTree
+    #   MAIL_FROM_EMAIL: noreply@family.example.com
+    #   SMTP_HOST: smtp.example.com
+    #   SMTP_PORT: 587
+    #   SMTP_SECURE: tls          # tls (STARTTLS), ssl (implicit TLS) or none
+    #   SMTP_USER: postmaster@example.com
+    #   SMTP_PASS: your-password
+    #   FT_TREE_STORAGE_MB: "1024"
+    #   CRON_KEY: change-me
     volumes:
       - uploads:/var/www/html/admin/uploads
       - storage:/var/www/html/storage
-      - env:/var/www/html/env
-    depends_on:
-      db:
-        condition: service_healthy
-  db:
-    image: mariadb:11
-    environment:
-      MARIADB_DATABASE: familytree
-      MARIADB_USER: familytree
-      MARIADB_PASSWORD: familytree
-      MARIADB_ROOT_PASSWORD: change-me-root
-    volumes:
-      - db:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
 volumes:
-  db:
   uploads:
   storage:
-  env:

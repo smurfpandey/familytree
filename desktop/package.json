@@ -18,7 +18,7 @@
     "appId": "in.bliink.familytree",
     "files": ["main.js"],
     "extraResources": [
-      { "from": "../public_html", "to": "app-src", "filter": ["**/*", "!.env", "!storage/**", "!admin/uploads/**"] },
+      { "from": "../public_html", "to": "app-src", "filter": ["**/*", "!storage/**", "!admin/uploads/**"] },
       { "from": "../tools/router.php", "to": "tools/router.php" },
       { "from": "php", "to": "php" }
     ],

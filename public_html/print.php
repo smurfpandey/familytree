@@ -97,6 +97,7 @@ header('X-Robots-Tag: noindex, nofollow');
     window.FT_PRINT_KIND = "<?= $kind ?>";
   </script>
   <script src="/assets/tree-themes.js?v=<?= FT_VERSION ?>"></script>
+  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_VERSION ?>"></script>
   <script defer src="/assets/emblems.js?v=<?= FT_VERSION ?>"></script>
   <script defer src="/assets/print.js?v=<?= FT_VERSION ?>"></script>
 </head>

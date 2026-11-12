@@ -151,6 +151,6 @@ function tdShow(tab) {
 }
 function loadTidy(memberId) {
   document.querySelectorAll('.td-tab').forEach(t => t.onclick = () => tdShow(t.dataset.tab));
-  if (memberId) { _tdFocusMember = memberId; tdShow('history'); }
-  else { tdShow('dups'); tdLoadBin(); }
+  if (memberId) { _tdFocusMember = memberId; _tdLoaded.history = false; tdShow('history'); }
+  else { _tdFocusMember = null; tdShow('dups'); tdLoadBin(); }
 }

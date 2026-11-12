@@ -277,7 +277,30 @@ function setFormHeader(m) {
     }
 }
 
+/** Show or hide the member form sidebar. */
+function setMemberFormOpen(open) {
+    const panel = document.getElementById('memberFormPanel');
+    const grid  = document.getElementById('tabMembersContent');
+    if (!panel || !grid) return;
+    panel.hidden = !open;
+    grid.classList.toggle('form-hidden', !open);
+    const trigger = document.getElementById('newMemberBtn');
+    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && window.matchMedia('(max-width: 960px)').matches) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function closeMemberForm() {
+    const panel = document.getElementById('memberFormPanel');
+    if (panel && panel.contains(document.activeElement)) {
+        document.getElementById('newMemberBtn')?.focus();
+    }
+    setMemberFormOpen(false);
+}
+
 function startNew() {
+    setMemberFormOpen(true);
     const form = document.getElementById('memberForm');
     if (form) form.reset();
     const idEl = document.getElementById('memberId');
@@ -387,6 +410,7 @@ function editMember(id) {
     if (!m) return;
     fillDropdowns();
     fillForm(m);
+    setMemberFormOpen(true);
 }
 
 async function saveMember(e) {
@@ -445,6 +469,7 @@ async function saveMember(e) {
         await fetchMembers();
         if (!id) {
             startNew();
+            closeMemberForm();
         } else {
             editMember(id);
         }
@@ -471,6 +496,7 @@ async function deleteMember() {
         }
         await fetchMembers();
         startNew();
+        closeMemberForm();
         alert('Member deleted successfully.');
     } catch (err) {
         console.error('Delete error', err);
@@ -602,7 +628,8 @@ document.addEventListener('keydown', function(e) {
 
         if (membersVisible) {
             const form = document.getElementById('memberForm');
-            if (!form) return;
+            const panel = document.getElementById('memberFormPanel');
+            if (!form || (panel && panel.hidden)) return;
             e.preventDefault();
             if (form.requestSubmit) form.requestSubmit();
             else saveMember(new Event('submit'));
@@ -614,6 +641,14 @@ document.addEventListener('keydown', function(e) {
             else saveUser(new Event('submit'));
         }
     }
+});
+
+/* Escape closes the member form sidebar (unless a dialog is open) */
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (document.querySelector('dialog[open]')) return;
+    const panel = document.getElementById('memberFormPanel');
+    if (panel && !panel.hidden) closeMemberForm();
 });
 
 /* Image upload (no alerts) */

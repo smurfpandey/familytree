@@ -40,27 +40,58 @@ Logins and settings always stay in the app's own database. The family data
 | JSON file | free | one readable file; on the desktop app it can sit in a Drive, Dropbox or OneDrive folder |
 
 Moving between homes copies everything and keeps every id, so links between
-people never break. Passwords and keys you enter are encrypted at rest (`APP_KEY`).
+people never break. Passwords and keys you enter are encrypted at rest with the
+key in `storage/app.key` (created on first use).
 
 ## Self-host
 
-Requirements: PHP 8.1+ with PDO, mbstring, OpenSSL; `pdo_mysql` or `pdo_sqlite`;
-cURL for Sheets, Airtable and the map; GD for share cards and thumbnails.
+Requirements: PHP 8.1+ with PDO SQLite, mbstring and OpenSSL; cURL for Sheets,
+Airtable and the map; GD for share cards and thumbnails.
 
 1. Put `public_html/` on your web server (Apache with `.htaccess`, or see the Nginx notes below).
-2. Open `/install/` in a browser. It checks the server, connects to MySQL or creates a SQLite file, creates the tables, and makes your owner account and the family tree.
-3. Done. `install/` locks itself once `.env` exists.
+2. Open `/install/` in a browser. Fill in your family details: it creates
+   `storage/familytree.sqlite`, the tables, your owner account and the tree, then
+   takes you to the login page.
+3. Done. `install/` locks itself once a family exists.
 
 With Docker:
 
 ```bash
-docker compose up -d
-# then open http://localhost:8080/install/
+# build the Containerfile locally
+docker compose up -d --build
+# or use the published image
+docker compose pull && docker compose up -d
+# then open http://localhost:8088/install/
 ```
 
-Upgrading: upload the new files over the old ones, keeping `.env`, `storage/` and
-`admin/uploads/`. On SQLite the app re-runs its schema once per version by itself.
-On MySQL, release notes list any table changes to run.
+The image is defined in `Containerfile`. A prebuilt multi-arch image is
+published to GitHub Container Registry on every push to `main` and every
+version tag:
+
+```bash
+docker pull ghcr.io/smurfpandey/familytree:latest
+```
+
+Or run it without cloning:
+
+```bash
+docker run -d --name familytree -p 8088:80 \
+  -v familytree_storage:/var/www/html/storage \
+  -v familytree_uploads:/var/www/html/admin/uploads \
+  ghcr.io/smurfpandey/familytree:latest
+```
+
+Then open http://localhost:8088/install/.
+
+There is no `.env` file. Everything has a default; set your domain, mail
+sender, cron key or upload cap through the commented `environment:` block in
+`docker-compose.yml`. Password resets and the weekly email use SMTP when
+`SMTP_HOST` is set, otherwise they fall back to PHP's `mail()` (which needs a
+local MTA).
+
+Upgrading: upload the new files over the old ones, keeping `storage/` (which holds
+the SQLite file, the encryption key and caches) and `admin/uploads/`. The app
+re-runs its schema once per version by itself.
 
 Nginx: route `/tree/{slug}` and `/tree/{slug}/{events|map|memories}` to
 `tree.php?slug=...&view=...`, deny `/storage` and `/tools`, and serve `/sitemap.xml`
@@ -74,12 +105,16 @@ or OneDrive folder gives you sync and backup for nothing. See `desktop/README.md
 
 ## Development
 
+PHP, Node and Python versions are managed with [mise](https://mise.jdx.dev) —
+run `mise install` once (`mise.toml` lists them), then `mise run dev`, `mise run
+test` and so on (see `mise tasks`).
+
 ```bash
 # any PHP 8.1+ will do; this serves public_html with the pretty URLs
 php -S 127.0.0.1:8080 -t public_html tools/router.php
 ```
 
-- `public_html/install/schema.sql` is the schema of record (MySQL). `python tools/make-sqlite-schema.py` derives the SQLite one.
+- `public_html/install/schema.sql` is the schema of record; `python tools/make-sqlite-schema.py` derives the SQLite one the app uses.
 - `node tools/render-emblems.mjs` rasterises `assets/emblems.js` to PNG for the share card and favicon (needs Playwright).
 - Family data access goes through `includes/store.php`; new storage backends implement `FamilyStore` (see `includes/stores/`).
 - No build step, no framework: PHP, vanilla JS, D3 for the tree.
@@ -92,12 +127,12 @@ Needs PHP 8.1+ with pdo_sqlite and mbstring (Node 20+ for the JS checks). From t
     for t in tools/test-*.mjs; do node "$t"; done
     php tools/smoke.php      # installs with SQLite in a temp dir, serves it with php -S, checks the main pages
 
-GitHub Actions runs the same on every push and pull request (.github/workflows/ci.yml), on PHP 8.1 and 8.3.
+GitHub Actions runs the same on every push and pull request (.github/workflows/ci.yml), on PHP 8.3 and 8.5. The `Container` workflow builds the `Containerfile` and publishes multi-arch images to GitHub Container Registry on `main` and version tags.
 
 ## The weekly job
 
 `public_html/cron.php` sends the weekly family email, backs up the tree into `storage/backups/` (8 kept) and
-clears out old data. Run it once a week: `php public_html/cron.php weekly`, or set `CRON_KEY` in `.env` and call
+clears out old data. Run it once a week: `php public_html/cron.php weekly`, or set `CRON_KEY` in the environment and call
 `/cron.php?key=...` from a web cron.
 
 ## Contributing

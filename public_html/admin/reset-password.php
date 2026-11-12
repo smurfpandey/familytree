@@ -7,7 +7,7 @@ define('FT_APP', 1);
 require_once __DIR__ . '/config.php';
 
 if (!empty($_SESSION['admin_logged_in'])) {
-    header('Location: index.php');
+    header('Location: ./');
     exit;
 }
 
@@ -97,7 +97,7 @@ $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fi
   <main class="auth-main">
     <div class="auth-top">
       <a href="/" class="auth-brand"><svg width="26" height="26" viewBox="3 3 22 23.5" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 25V15.5M14 21l-5.2-5.2M14 18.5l5.2-5.2M14 15.5V9.6M9.5 25h9"/><circle cx="7.2" cy="14.2" r="2.4"/><circle cx="20.8" cy="11.7" r="2.4"/><circle cx="14" cy="7" r="2.4"/></g></svg>FamilyTree</a>
-      <span class="auth-top-link">Remembered it? <a href="index.php">Log in</a></span>
+      <span class="auth-top-link">Remembered it? <a href="./">Log in</a></span>
     </div>
 
 <?php if ($success): ?>
@@ -105,7 +105,7 @@ $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fi
       <div class="done-ico"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></g></svg></div>
       <h1>Password updated</h1>
       <p>Your password has been changed.<br>You can now log in with your new password.</p>
-      <a href="index.php" class="btn-main">Go to log in</a>
+      <a href="./" class="btn-main">Go to log in</a>
     </div>
 
 <?php elseif (!$user): ?>
@@ -114,7 +114,7 @@ $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fi
       <p class="auth-sub">This reset link can't be used any more.</p>
       <div class="alert" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></g></svg><span><?= htmlspecialchars($error) ?></span></div>
       <a href="forgot-password.php" class="btn-main">Request a new reset link</a>
-      <p class="alt"><a href="index.php">Back to log in</a></p>
+      <p class="alt"><a href="./">Back to log in</a></p>
     </div>
 
 <?php else: ?>
@@ -146,7 +146,7 @@ $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fi
         </div>
         <button type="submit" class="btn-main">Save new password</button>
       </form>
-      <p class="alt"><a href="index.php">Cancel</a></p>
+      <p class="alt"><a href="./">Cancel</a></p>
     </div>
 <?php endif; ?>
   </main>

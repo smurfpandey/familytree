@@ -159,7 +159,7 @@ class MemoriesView extends FamilyTreeController {
         this.media.length ? 'Try another type or person.' :
         guest ? 'This family has not shared any memories publicly yet.' :
         'Upload photos, videos and voice notes from Admin → Photos, tag the people in them, and they appear here. Set Photos to Public in Privacy settings for guests to see them.'}</p>${
-        !guest ? `<a class="btn btn-cta btn-sm" href="/admin/photos.php" style="margin-top:14px">${ICONS.plus} Add a memory</a>` : ''}</div>`;
+        !guest ? `<a class="btn btn-cta btn-sm" href="/admin/#photos" style="margin-top:14px">${ICONS.plus} Add a memory</a>` : ''}</div>`;
       return;
     }
     const n = t => this.media.filter(m => m.type === t).length;
@@ -172,7 +172,7 @@ class MemoriesView extends FamilyTreeController {
             ${n('audio') ? `<span>${ICONS.mic}<b>${n('audio')}</b> voice notes</span>` : ''}
             ${filtered ? `<span class="mem-match">Showing <b>${items.length}</b> of ${total}${this.q ? ` for “${this.esc(this.rawQ)}”` : ''}${this.q ? ' <button type="button" class="mem-search-clear">Clear</button>' : ''}</span>` : ''}
           </div>
-          ${window.FT_CAN_EDIT ? `<a class="btn btn-cta btn-sm" href="/admin/photos.php">${ICONS.plus} Add a memory</a>` : ''}
+          ${window.FT_CAN_EDIT ? `<a class="btn btn-cta btn-sm" href="/admin/#photos">${ICONS.plus} Add a memory</a>` : ''}
         </div>
         <div class="mem-wall">${items.map((m, i) => this.card(m, i)).join('')}</div>
       </div>

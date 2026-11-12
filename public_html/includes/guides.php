@@ -321,18 +321,15 @@ HTML],
 {$note('The free Airtable plan allows 1,000 records per base. People and photos both count, so a tree with 600 people and 300 photos fits; a larger one needs a paid Airtable plan or another home.', 'info')}
 HTML],
 
-    'own-database' => ['section' => 'Your data', 'title' => 'Use your own MySQL or Postgres', 'mins' => 3,
-        'summary' => 'Point a tree at a database you control: your hosting plan, Neon, Supabase, Aiven.',
+    'own-database' => ['section' => 'Your data', 'title' => 'Use your own SQLite', 'mins' => 3,
+        'summary' => 'Point a tree at a SQLite file you control: any path inside your storage folder.',
         'body' => <<<HTML
-<p>Any MySQL, MariaDB or Postgres database that can be reached from the internet will do. Free tiers from Neon, Supabase and Aiven are enough for even very large trees, and most web hosting plans include MySQL.</p>
+<p>The app keeps all of its data in SQLite. If you want the family's data in its own file rather than the app database, point a tree at a SQLite file inside the storage folder.</p>
 <ol class="g-steps">
-  <li>Create an empty database and a user for it. Note the host, port, database name, user and password.</li>
-  <li>Allow outside connections if your host asks (often called <em>remote MySQL</em> or an IP allow list).</li>
-  <li>In <b>Admin &gt; Tree Settings &gt; Where your family's data lives</b>, choose <b>My own MySQL / MariaDB</b> or <b>My own Postgres</b> and fill in the details. Tick <b>Connect over TLS</b> for managed hosts.</li>
+  <li>In <b>Admin &gt; Tree Settings &gt; Where your family's data lives</b>, choose <b>My own SQLite file</b> and specify the path.</li>
   <li>Press <b>Test</b>, then <b>Set up</b> to create the tables, then <b>Switch to this</b>.</li>
 </ol>
-{$fig('datahome-mysql', 'The database form with host, port, database name, user, password and a TLS option')}
-<p>The user needs permission to create tables once, for <b>Set up</b>; after that it only reads and writes rows.</p>
+<p>Pick a SQLite file inside the storage folder; <b>Set up</b> creates the tables and <b>Switch to this</b> points the tree at it.</p>
 HTML],
 
     'backups' => ['section' => 'Your data', 'title' => 'Back up and take your tree with you', 'mins' => 2,
@@ -460,34 +457,34 @@ HTML],
 <p>FamilyTree is open source under the AGPL-3.0 licence. The code is on <a href="https://github.com/ravirahul/familytree" rel="noopener">GitHub</a>, and this site runs the same code.</p>
 <h2 id="needs">What you need</h2>
 <ul>
-  <li>PHP 8.1 or newer with PDO, mbstring and OpenSSL. cURL for maps, Google Sheets and Airtable; GD for share cards and thumbnails.</li>
-  <li>MySQL or MariaDB, or nothing at all: SQLite works out of the box.</li>
+  <li>PHP 8.1 or newer with PDO SQLite, mbstring and OpenSSL. cURL for maps, Google Sheets and Airtable; GD for share cards and thumbnails.</li>
+  <li>Nothing else: the app keeps its own records in a SQLite file.</li>
   <li>Apache with <code>.htaccess</code> (most shared hosting), or Nginx with the rules from the README.</li>
 </ul>
 <h2 id="install">Install</h2>
 <ol class="g-steps">
   <li>Download the code from GitHub and upload the <code>public_html</code> folder to your web space.</li>
-  <li>Open <code>https://your-site/install/</code>. It checks the server, connects to MySQL or makes a SQLite file, creates the tables, and makes your account and first tree.</li>
-  <li>That's it. The installer locks itself afterwards.</li>
+  <li>Open <code>https://your-site/install/</code>. Fill in your family details: it creates a SQLite file, the tables, your account and first tree, then takes you to the login page.</li>
+  <li>That's it. The installer locks itself once a family exists.</li>
 </ol>
 <h2 id="docker">With Docker</h2>
 <pre><code>git clone https://github.com/ravirahul/familytree
 cd familytree
-docker compose up -d
-# then open http://localhost:8080/install/</code></pre>
+docker compose up -d --build
+# then open http://localhost:8088/install/</code></pre>
 <h2 id="upgrade">Upgrading</h2>
 <h2 id="weekly">The weekly job</h2>
 <p>Once a week, <code>cron.php</code> sends the family email, makes a backup of every tree (the last 8 are kept) and clears out old data. Add a cron job in your hosting panel, Monday morning:</p>
 <pre><code>php /home/you/public_html/cron.php weekly</code></pre>
-<p>Or set <code>CRON_KEY</code> in <code>.env</code> and call <code>https://your-site/cron.php?key=…</code> from any web cron service.</p>
+<p>Or set <code>CRON_KEY</code> in the environment (see <code>docker-compose.yml</code>) and call <code>https://your-site/cron.php?key=…</code> from any web cron service.</p>
 <h2 id="upgrade-files">Upgrading the files</h2>
-<p>Upload the new files over the old ones, keeping your <code>.env</code>, <code>storage/</code> and <code>admin/uploads/</code>. On MySQL, run any new files in <code>install/upgrades/</code> once. On SQLite, the app brings the tables up to date itself.</p>
+<p>Upload the new files over the old ones, keeping your <code>storage/</code> (which holds the SQLite file, the encryption key and caches) and <code>admin/uploads/</code>. The app brings its tables up to date itself.</p>
 HTML],
 
     'desktop-app' => ['section' => 'Run it yourself', 'title' => 'FamilyTree on your own computer', 'mins' => 2,
         'summary' => 'The same app in a window, no server and no account. Keep the folder in Drive for sync.',
         'body' => <<<HTML
-<p>The desktop app runs FamilyTree on your computer with everything bundled. Your tree is one folder: a SQLite file, your photos and a settings file. Put that folder inside Google Drive, Dropbox or OneDrive and you get backup and sync between computers for free.</p>
+<p>The desktop app runs FamilyTree on your computer with everything bundled. Your tree is one folder: a SQLite file and your photos. Put that folder inside Google Drive, Dropbox or OneDrive and you get backup and sync between computers for free.</p>
 <h2 id="build">Getting it</h2>
 <p>Ready-made installers are not published yet. If you are comfortable with a terminal, build it from the code:</p>
 <pre><code>git clone https://github.com/ravirahul/familytree

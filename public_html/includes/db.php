@@ -3,18 +3,16 @@
  * includes/db.php - one place that opens a database.
  *
  * FamilyTree speaks a small, portable subset of SQL, so the same queries run on
- * MySQL / MariaDB (the hosted default), SQLite (the desktop app, tiny self-hosts)
- * and, for a family's own data, Postgres. The few MySQL idioms the code uses are
- * rewritten here for SQLite, so the rest of the app never has to know.
+ * SQLite (the self-hosted default). The app never talks to MySQL, MariaDB or Postgres
+ * directly - it uses SQLite for all data storage.
  *
- *   $pdo = ft_connect(['driver' => 'mysql', 'host' => ..., 'name' => ..., 'user' => ..., 'pass' => ...]);
  *   $pdo = ft_connect(['driver' => 'sqlite', 'file' => '/path/family.sqlite']);
- *   $pdo = ft_connect(['driver' => 'pgsql', 'host' => ..., 'port' => 5432, 'name' => ..., 'user' => ..., 'pass' => ...]);
  *
- * ft_connect_from_env() reads DB_* from the environment (.env), which is what config.php uses.
+ * ft_db_config_from_env() reads DB_* from the environment, which is what config.php uses.
  */
 
-class FtSqlitePdo extends PDO {
+/** Shared SQLite setup; the parent is Pdo\Sqlite (PHP 8.4+) or plain PDO. */
+trait FtSqliteMethods {
     public function __construct(string $dsn) {
         parent::__construct($dsn, null, null, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -23,9 +21,11 @@ class FtSqlitePdo extends PDO {
         $this->exec('PRAGMA foreign_keys = ON');
         $this->exec('PRAGMA journal_mode = WAL');
         $this->exec('PRAGMA busy_timeout = 5000');
-        // MySQL functions the app calls, as SQLite user functions
-        $this->sqliteCreateFunction('NOW', fn() => date('Y-m-d H:i:s'), 0);
-        $this->sqliteCreateFunction('UUID', fn() => ft_uuid(), 0);
+        // MySQL functions the app calls, as SQLite user functions. PHP 8.4 moved
+        // createFunction to Pdo\Sqlite and 8.5 deprecates the old PDO method.
+        $create = method_exists($this, 'createFunction') ? 'createFunction' : 'sqliteCreateFunction';
+        $this->$create('NOW', fn() => date('Y-m-d H:i:s'), 0);
+        $this->$create('UUID', fn() => ft_uuid(), 0);
     }
     /** Rewrite the MySQL idioms the app uses into SQLite ones. */
     public static function translate(string $sql): string {
@@ -48,6 +48,12 @@ class FtSqlitePdo extends PDO {
     public function exec(string $statement) { return parent::exec(self::translate($statement)); }
 }
 
+if (class_exists('Pdo\Sqlite')) {
+    class FtSqlitePdo extends Pdo\Sqlite { use FtSqliteMethods; }
+} else {
+    class FtSqlitePdo extends PDO { use FtSqliteMethods; }
+}
+
 /** Where FamilyTree keeps its own files (SQLite db, caches, app.key). The desktop app points this elsewhere. */
 function ft_storage_dir(): string {
     $d = getenv('FT_STORAGE_DIR') ?: (dirname(__DIR__) . '/storage');
@@ -64,51 +70,20 @@ function ft_uuid(): string {
 
 /** Open a connection described by an array. Throws PDOException when it cannot. */
 function ft_connect(array $c): PDO {
-    $driver = strtolower($c['driver'] ?? 'mysql');
-    if ($driver === 'sqlite') {
-        $file = $c['file'] ?? '';
-        if ($file === '') throw new PDOException('SQLite needs a file path');
-        if ($file !== ':memory:' && !is_dir(dirname($file))) @mkdir(dirname($file), 0750, true);
-        return new FtSqlitePdo('sqlite:' . $file);
+    $driver = strtolower($c['driver'] ?? 'sqlite');
+    if ($driver !== 'sqlite') {
+        throw new PDOException('Unsupported driver: ' . $driver . ': only SQLite is supported');
     }
-    $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::ATTR_TIMEOUT            => (int)($c['timeout'] ?? 5),
-    ];
-    $host = $c['host'] ?? 'localhost';
-    $name = $c['name'] ?? '';
-    if ($driver === 'pgsql') {
-        $dsn = "pgsql:host=$host;port=" . (int)($c['port'] ?? 5432) . ";dbname=$name" . (!empty($c['ssl']) ? ';sslmode=require' : '');
-        return new PDO($dsn, $c['user'] ?? '', $c['pass'] ?? '', $options);
-    }
-    $dsn = "mysql:host=$host;port=" . (int)($c['port'] ?? 3306) . ";dbname=$name;charset=utf8mb4";
-    $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci";
-    if (!empty($c['ssl']) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
-        // most managed MySQL hosts (Aiven, PlanetScale, Azure) want TLS; the system CA bundle is enough
-        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
-        $options[PDO::MYSQL_ATTR_SSL_CA] = $c['ssl_ca'] ?? '';
-    }
-    return new PDO($dsn, $c['user'] ?? '', $c['pass'] ?? '', $options);
+    $file = $c['file'] ?? '';
+    if ($file === '') throw new PDOException('SQLite needs a file path');
+    if ($file !== ':memory:' && !is_dir(dirname($file))) @mkdir(dirname($file), 0750, true);
+    return new FtSqlitePdo('sqlite:' . $file);
 }
 
 /** The app's own database, from DB_* in the environment. */
 function ft_db_config_from_env(): array {
-    $driver = strtolower(getenv('DB_DRIVER') ?: 'mysql');
-    if ($driver === 'sqlite') {
-        $file = getenv('DB_FILE') ?: (ft_storage_dir() . '/familytree.sqlite');
-        return ['driver' => 'sqlite', 'file' => $file];
-    }
-    return [
-        'driver' => $driver,
-        'host'   => getenv('DB_HOST') ?: 'localhost',
-        'port'   => getenv('DB_PORT') ?: ($driver === 'pgsql' ? 5432 : 3306),
-        'name'   => getenv('DB_NAME') ?: '',
-        'user'   => getenv('DB_USER') ?: '',
-        'pass'   => getenv('DB_PASS') ?: '',
-        'ssl'    => in_array(strtolower((string)getenv('DB_SSL')), ['1', 'true', 'yes'], true),
-    ];
+    $file = getenv('DB_FILE') ?: (ft_storage_dir() . '/familytree.sqlite');
+    return ['driver' => 'sqlite', 'file' => $file];
 }
 
 /** Which schema file fits a connection. */

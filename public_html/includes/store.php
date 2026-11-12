@@ -7,14 +7,12 @@
  * FamilyStore, and each tree chooses its own:
  *
  *   here      the app's database (default)
- *   mysql     the family's own MySQL / MariaDB
- *   pgsql     the family's own Postgres
  *   sqlite    a SQLite file (desktop app, small self-hosts)
  *   sheets    a Google Sheet (free), via a service account
  *   airtable  an Airtable base (free tier), via a personal access token
  *   json      a JSON file on this server (a Drive / Dropbox / OneDrive folder on the desktop)
  *
- * The choice is kept in tenants.data_source as encrypted JSON (APP_KEY).
+ * The choice is kept in tenants.data_source as encrypted JSON (storage/app.key).
  *
  *   $store = ft_store($pdo, $tenant);          // $tenant from loadTenant / getPublicTenantBySlug
  *   $store->members();  $store->insertMember([...]);  $store->media(); ...
@@ -47,7 +45,7 @@ interface FamilyStore {
     /** replace everything with these rows (moving a tree between homes); returns old member id => new member id */
     public function importAll(array $members, array $media): array;
 
-    /** 'here' | 'mysql' | 'pgsql' | 'sqlite' | 'sheets' | 'airtable' | 'json' */
+    /** 'here' | 'sqlite' | 'sheets' | 'airtable' | 'json' */
     public function kind(): string;
     /** true when reads go over the network and should be cached */
     public function remote(): bool;
@@ -161,7 +159,7 @@ function ft_norm_member(array $r): array {
 }
 
 /* ── secrets at rest ─────────────────────────────────────────────────────── */
-/** APP_KEY from .env, or a key made once and kept in storage/app.key (so older installs need no .env edit). */
+/** The key in storage/app.key, or APP_KEY when an operator sets one. */
 function ft_app_key(): string {
     $k = getenv('APP_KEY') ?: '';
     if ($k === '') {
@@ -203,7 +201,7 @@ function ft_store(PDO $pdo, array $tenant, ?array $cfg = null): FamilyStore {
     $cfg ??= ft_data_source($tenant);
     $tid  = (string)$tenant['id'];
     $store = match ($cfg['type'] ?? 'here') {
-        'mysql', 'pgsql', 'sqlite' => new PdoFamilyStore(ft_connect(['driver' => $cfg['type']] + $cfg), $tid, $cfg['type']),
+        'sqlite' => new PdoFamilyStore(ft_connect(['driver' => 'sqlite'] + $cfg), $tid, 'sqlite'),
         'sheets'   => (require_once __DIR__ . '/stores/sheets.php')   ? new SheetsFamilyStore($cfg, $tid) : null,
         'airtable' => (require_once __DIR__ . '/stores/airtable.php') ? new AirtableFamilyStore($cfg, $tid) : null,
         'json'     => (require_once __DIR__ . '/stores/json.php')     ? new JsonFamilyStore($cfg, $tid) : null,
@@ -215,11 +213,12 @@ function ft_store(PDO $pdo, array $tenant, ?array $cfg = null): FamilyStore {
 
 /* ── the schema a family's own database needs (just the family tables) ───── */
 function ft_family_schema(string $driver): array {
-    $id = $driver === 'sqlite' ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : ($driver === 'pgsql' ? 'SERIAL PRIMARY KEY' : 'INT AUTO_INCREMENT PRIMARY KEY');
-    $txt = $driver === 'pgsql' ? 'TEXT' : 'TEXT';
+    // SQLite only
+    $id  = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+    $txt = 'TEXT';
     $vc  = 'VARCHAR(255)';
-    $ts  = $driver === 'pgsql' ? 'TIMESTAMP' : 'DATETIME';
-    $tbl = $driver === 'mysql' ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
+    $ts  = 'DATETIME';
+    $tbl = '';
     return [
         "CREATE TABLE IF NOT EXISTS family_tree_data (id $id, tenant_id CHAR(36) NOT NULL, name $vc NOT NULL, nickname $vc, birth_date $vc, birth_location $vc, gender VARCHAR(50), img $vc, fid INT, mid INT, pids $txt, current_location $vc, insta_url $vc, fb_url $vc, anniversary_date $vc, death_date $vc, death_location $vc, is_alive INT DEFAULT 1, wiki $txt, is_private INT DEFAULT 0, privacy_override INT DEFAULT 0, extra $txt)$tbl",
         "CREATE TABLE IF NOT EXISTS family_media (id $id, tenant_id CHAR(36) NOT NULL, url $vc NOT NULL, type VARCHAR(10) DEFAULT 'image', title $vc, description $txt, uploaded_by_user_id INT, created_at $ts)$tbl",
