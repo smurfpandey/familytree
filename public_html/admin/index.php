@@ -14,6 +14,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && $reqPath !== '' && $reqPa
 }
 
 // Login using family_users table
+require_once __DIR__ . '/../includes/trees.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $tok = $_POST['csrf_token'] ?? '';
     $exp = $_SESSION['csrf_token'] ?? '';
@@ -27,13 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     if ($email === '' || $password === '') {
         $loginError = 'Email and password are required';
     } else {
-        $stmt = $pdo->prepare("
-            SELECT u.*, m.name AS member_name, m.nickname AS member_nickname, m.img AS member_img
-            FROM family_users u
-            LEFT JOIN family_tree_data m ON u.member_id = m.id
-            WHERE u.email = ?
-            LIMIT 1
-        ");
+        $stmt = $pdo->prepare("SELECT * FROM family_users WHERE email = ? LIMIT 1");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -47,26 +42,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             $upd = $pdo->prepare("UPDATE family_users SET last_login_at = NOW() WHERE id = ?");
             $upd->execute([$user['id']]);
 
-            $tenantId = !empty($user['tenant_id'])
-                ? $user['tenant_id']
-                : ft_default_tenant_id();
+            // One account can belong to several trees. Open any one of them;
+            // the sidebar switcher changes the session afterwards.
+            $membership = ft_login_membership($pdo, (int)$user['id']);
+            if (!$membership) {
+                $loginError = 'This account is not part of a family tree. Ask the tree owner to add you.';
+            } else {
+                $avatarUrl = null;
+                if (!empty($membership['member_id'])) {
+                    try {
+                        $av = $pdo->prepare("SELECT img FROM family_tree_data WHERE id = ? AND tenant_id = ? LIMIT 1");
+                        $av->execute([(int)$membership['member_id'], $membership['id']]);
+                        $avatarUrl = $av->fetchColumn() ?: null;
+                    } catch (Throwable $e) { /* a tree with an external data home can still log in */ }
+                }
 
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['tenant_id']       = $tenantId;
-            $_SESSION['admin_user'] = [
-                'id'           => (int)$user['id'],
-                'display_name' => $user['display_name'],
-                'email'        => $user['email'],
-                'role'         => $user['role'],
-                'permissions'  => $user['permissions'] ? json_decode($user['permissions'], true) : null,
-                'member_id'    => $user['member_id'] ? (int)$user['member_id'] : null,
-                'avatar_url'   => $user['member_img'] ?: null,
-                'tenant_id'    => $tenantId,
-            ];
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_user'] = [
+                    'id'           => (int)$user['id'],
+                    'display_name' => $user['display_name'],
+                    'email'        => $user['email'],
+                    'role'         => $membership['role'],
+                    'permissions'  => $membership['permissions'],
+                    'member_id'    => $membership['member_id'],
+                    'avatar_url'   => $avatarUrl,
+                    'tenant_id'    => $membership['id'],
+                ];
+                ft_apply_tree_session($membership);
 
-            $redirect = $adminDir . '/' . (!empty($_GET['welcome']) ? '?welcome=1' : '');
-            header('Location: ' . $redirect);
-            exit;
+                $redirect = $adminDir . '/' . (!empty($_GET['welcome']) ? '?welcome=1' : '');
+                header('Location: ' . $redirect);
+                exit;
+            }
         }
     }
     }
@@ -77,6 +84,32 @@ if (isset($_GET['logout'])) {
     header('Location: ' . $adminDir . '/');
     exit;
 }
+
+// Trees this account can open, and which one the session is working on.
+$adminTrees = [];
+$currentTree = null;
+if (!empty($_SESSION['admin_logged_in']) && !empty($_SESSION['admin_user']['id'])) {
+    try { $adminTrees = ft_user_memberships($pdo, (int)$_SESSION['admin_user']['id']); }
+    catch (Throwable $e) { $adminTrees = []; }
+    foreach ($adminTrees as $t) {
+        if (($t['id'] ?? null) === ($_SESSION['tenant_id'] ?? null)) { $currentTree = $t; break; }
+    }
+    if (!$currentTree && $adminTrees) {
+        $currentTree = $adminTrees[0];
+        ft_apply_tree_session($currentTree);
+    }
+}
+
+// Instance-wide identity and whether this account may use the Instance area.
+$instanceName    = 'FamilyTree';
+$isInstanceAdmin = false;
+if (!empty($_SESSION['admin_user']['id'])) {
+    try { $instanceName = ft_instance_name($pdo); }
+    catch (Throwable $e) { $instanceName = 'FamilyTree'; }
+    $isInstanceAdmin = ft_can_manage_instance($pdo, (int)$_SESSION['admin_user']['id']);
+}
+$adminPages = ['dashboard', 'members', 'photos', 'tidy', 'settings', 'activity', 'account'];
+if ($isInstanceAdmin) $adminPages = array_merge(['dashboard', 'users', 'trees', 'instance', 'members', 'photos', 'tidy', 'activity', 'settings', 'account']);
 
 // User data for JS
 $adminUserJson = '';
@@ -89,24 +122,17 @@ if (!empty($_SESSION['admin_user'])) {
         'member_id'    => $_SESSION['admin_user']['member_id'],
         'avatar_url'   => $_SESSION['admin_user']['avatar_url'],
         'tenant_id'    => $_SESSION['admin_user']['tenant_id'] ?? ($_SESSION['tenant_id'] ?? null),
-    ]);
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }
+$adminTreesJson = json_encode(array_map(fn($t) => [
+    'id' => $t['id'], 'slug' => $t['slug'], 'display_name' => $t['display_name'],
+    'role' => $t['role'], 'visibility' => $t['visibility'],
+], $adminTrees), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
 // Resolve live family tree URL for current tenant
-$curTenantSlug = '';
-$curTenantName = '';
-$adminTenantId = $_SESSION['admin_user']['tenant_id'] ?? ($_SESSION['tenant_id'] ?? null);
-if (!empty($adminTenantId)) {
-    try {
-        $tStmt = $pdo->prepare("SELECT slug, display_name FROM tenants WHERE id = ? LIMIT 1");
-        $tStmt->execute([$adminTenantId]);
-        $tRow = $tStmt->fetch(PDO::FETCH_ASSOC);
-        if ($tRow) {
-            $curTenantSlug = $tRow['slug'];
-            $curTenantName = $tRow['display_name'];
-        }
-    } catch (Throwable $e) {}
-}
+$curTenantSlug = $currentTree['slug'] ?? '';
+$curTenantName = $currentTree['display_name'] ?? '';
+$adminTenantId = $currentTree['id'] ?? ($_SESSION['tenant_id'] ?? null);
 $liveTreeUrl = $curTenantSlug ? ('/tree/' . urlencode($curTenantSlug)) : '/';
 ?>
 <!DOCTYPE html>
@@ -114,21 +140,21 @@ $liveTreeUrl = $curTenantSlug ? ('/tree/' . urlencode($curTenantSlug)) : '/';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<?php if (!empty($_SESSION['admin_logged_in'])): ?><title>Admin · FamilyTree</title><?php endif; ?>
+<?php if (!empty($_SESSION['admin_logged_in'])): ?><title>Admin · <?= htmlspecialchars($instanceName, ENT_QUOTES) ?></title><?php endif; ?>
 <?php if (empty($_SESSION['admin_logged_in'])): ?>
 <title>Log in · FamilyTree</title>
 <script>try { document.documentElement.setAttribute('data-theme', localStorage.getItem('family_tree_theme') === 'dark' ? 'dark' : 'light'); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/auth.css?v=<?= FT_VERSION ?>">
+<link rel="stylesheet" href="/assets/auth.css?v=<?= FT_ASSET_VERSION ?>">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <?php else:
     if (!defined('FT_APP')) define('FT_APP', 1);
     require_once __DIR__ . '/../includes/brand.php';
     echo ft_brand_head(); ?>
 <script>try { document.documentElement.setAttribute('data-theme', localStorage.getItem('familyAdminTheme') === 'dark' ? 'dark' : 'light'); } catch (e) {}</script>
-<link rel="stylesheet" href="css/admin.css?v=<?= FT_VERSION ?>">
+<link rel="stylesheet" href="css/admin.css?v=<?= FT_ASSET_VERSION ?>">
 <?php endif; ?>
 <?php if (!empty($_SESSION['csrf_token'])): ?>
 <meta name="csrf-token" content="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -206,10 +232,26 @@ document.getElementById('loginForm').addEventListener('submit', function () {
         <a href="./" class="sb-logo" aria-label="FamilyTree Admin, go to dashboard" onclick="showPage('dashboard');return false;">
             <span class="sb-logo-icon"><?= ft_logo(30) ?></span>
             <div>
-                <span class="sb-logo-text">FamilyTree</span>
+                <span class="sb-logo-text"><?= htmlspecialchars($instanceName) ?></span>
                 <span class="sb-logo-sub">Admin</span>
             </div>
         </a>
+
+        <!-- Tree switcher: one account can open several family trees -->
+        <?php if (!empty($adminTrees)): ?>
+        <div class="sb-tree-switch">
+            <label for="treeSwitcher">Family tree</label>
+            <select id="treeSwitcher" autocomplete="off" onchange="switchTree(this.value)">
+                <?php foreach ($adminTrees as $t): ?>
+                <option value="<?= htmlspecialchars($t['id'], ENT_QUOTES) ?>"
+                        data-name="<?= htmlspecialchars($t['display_name'], ENT_QUOTES) ?>"
+                    <?= (($currentTree['id'] ?? null) === $t['id']) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($t['display_name']) ?><?= $t['role'] !== 'owner' ? ' · ' . htmlspecialchars(ucfirst($t['role'])) : '' ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
 
         <!-- Direct Live Tree Link -->
         <div style="padding: 10px 14px 4px 14px;">
@@ -223,7 +265,40 @@ document.getElementById('loginForm').addEventListener('submit', function () {
         <!-- Navigation -->
         <nav class="sb-nav">
 
-            <span class="sb-section-label">Overview</span>
+            <?php if ($isInstanceAdmin): ?>
+            <span class="sb-section-label">Instance</span>
+
+            <button class="sb-item" id="navUsers" onclick="showPage('users')">
+                <span class="sb-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </span>
+                Users
+            </button>
+
+            <button class="sb-item" id="navTrees" onclick="showPage('trees')">
+                <span class="sb-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22v-7"/><path d="M12 15a7 7 0 0 0 7-7c0-2-1.5-3.5-3.5-3.5A6 6 0 0 0 4 8c0 3.87 3.58 7 8 7z"/>
+                    </svg>
+                </span>
+                Trees
+            </button>
+
+            <button class="sb-item" id="navInstance" onclick="showPage('instance')">
+                <span class="sb-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/>
+                    </svg>
+                </span>
+                Instance Settings
+            </button>
+            <?php endif; ?>
+
+            <span class="sb-section-label">Tree · <?= htmlspecialchars($curTenantName ?: 'Family tree') ?></span>
 
             <button class="sb-item active" id="navDashboard" onclick="showPage('dashboard')">
                 <span class="sb-icon">
@@ -235,8 +310,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                 Dashboard
             </button>
 
-            <span class="sb-section-label">Manage</span>
-
             <button class="sb-item" id="navMembers" onclick="showPage('members')">
                 <span class="sb-icon">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -246,16 +319,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                     </svg>
                 </span>
                 Members
-            </button>
-
-            <button class="sb-item" id="navUsers" onclick="showPage('users')">
-                <span class="sb-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                </span>
-                Users
             </button>
 
             <button class="sb-item" id="navPhotos" onclick="showPage('photos')">
@@ -278,7 +341,14 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                 Tidy up
             </button>
 
-            <span class="sb-section-label">Settings</span>
+            <button class="sb-item" id="navActivity" onclick="showPage('activity')">
+                <span class="sb-icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                </span>
+                Activity Log
+            </button>
 
             <button class="sb-item" id="navSettings" onclick="showPage('settings')">
                 <span class="sb-icon">
@@ -291,15 +361,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
             </button>
 
             <span class="sb-section-label">Account</span>
-
-            <button class="sb-item" id="navActivity" onclick="showPage('activity')">
-                <span class="sb-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                </span>
-                Activity Log
-            </button>
 
             <button class="sb-item" id="navAccount" onclick="showPage('account')">
                 <span class="sb-icon">
@@ -423,7 +484,7 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                             </div>
                         </div>
                         <div class="stat-value" id="statUsers"><span class="sk" aria-hidden="true"></span></div>
-                        <div class="stat-label">Registered Users</div>
+                        <div class="stat-label">User Accounts</div>
                         <div class="stat-sublabel" id="statUsersLimit"></div>
                     </div>
                     <div class="stat-card">
@@ -486,10 +547,22 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                 <?php require __DIR__ . '/members.php'; ?>
             </div>
 
-            <!-- ── USERS PAGE ─────────────────────────────────────── -->
+            <?php if ($isInstanceAdmin): ?>
+            <!-- ── USERS PAGE (instance accounts and tree access) ─── -->
             <div class="admin-page" id="pageUsers">
                 <?php require __DIR__ . '/users.php'; ?>
             </div>
+
+            <!-- ── TREES PAGE (instance) ──────────────────────────── -->
+            <div class="admin-page" id="pageTrees">
+                <?php require __DIR__ . '/instance-trees.php'; ?>
+            </div>
+
+            <!-- ── INSTANCE SETTINGS PAGE ─────────────────────────── -->
+            <div class="admin-page" id="pageInstance">
+                <?php require __DIR__ . '/instance-settings.php'; ?>
+            </div>
+            <?php endif; ?>
 
             <!-- ── PHOTOS PAGE ────────────────────────────────────── -->
             <div class="admin-page" id="pagePhotos">
@@ -545,30 +618,77 @@ document.getElementById('loginForm').addEventListener('submit', function () {
     </div><!-- /.main-content -->
 </div><!-- /.app-shell -->
 
+<!-- New tree dialog -->
+<div class="ob-overlay" id="newTreeOverlay" style="display:none">
+    <div class="ob-card" role="dialog" aria-modal="true" aria-labelledby="newTreeTitle">
+        <div class="ob-head" style="margin-bottom:14px">
+            <div class="ob-emoji"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M12 15a7 7 0 0 0 7-7c0-2-1.5-3.5-3.5-3.5A6 6 0 0 0 4 8c0 3.87 3.58 7 8 7z"/></svg></div>
+            <h2 id="newTreeTitle">Plant another tree</h2>
+            <p>A new, empty family tree under the same account. You can switch between them any time.</p>
+        </div>
+        <form id="newTreeForm" onsubmit="createTree(event)">
+            <div class="ob-field" style="margin-bottom:12px">
+                <label for="newTreeName">Family name</label>
+                <input id="newTreeName" name="name" maxlength="120" placeholder="The Sharma family" required autocomplete="off">
+            </div>
+            <div class="ob-field" style="margin-bottom:6px">
+                <label for="newTreeSlug">Link name <small>(optional, the last part of /tree/…)</small></label>
+                <input id="newTreeSlug" name="slug" maxlength="80" placeholder="sharma" pattern="[A-Za-z0-9-]*" autocomplete="off">
+            </div>
+            <div class="ob-hint" id="newTreeError" style="color:var(--ft-danger);min-height:18px"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+                <button type="button" class="btn btn-ghost" onclick="closeNewTreeDialog()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="newTreeSubmit">Create tree</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
 <!-- Scripts -->
-<script src="js/common.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/members.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/users.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/media.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/settings.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/datahome.js?v=<?= FT_VERSION ?>"></script>
-<script src="/assets/emblems.js?v=<?= FT_VERSION ?>"></script>
-<script src="/assets/tree-themes.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/emblem.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/import.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/connect.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/dashboard.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/activity.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/tidy.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/account.js?v=<?= FT_VERSION ?>"></script>
-<script src="js/onboarding.js?v=<?= FT_VERSION ?>"></script>
+<script src="js/common.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/trees.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/members.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/users.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/media.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/settings.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/instance.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/datahome.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="/assets/emblems.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="/assets/tree-themes.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/emblem.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/import.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/dashboard.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/activity.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/tidy.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/account.js?v=<?= FT_ASSET_VERSION ?>"></script>
+<script src="js/onboarding.js?v=<?= FT_ASSET_VERSION ?>"></script>
 
 <script>
 // ── Session data ──────────────────────────────────────────
 const ADMIN_USER = <?= $adminUserJson ?: 'null' ?>;
+const ADMIN_TREES = <?= $adminTreesJson ?: '[]' ?>;
+const ADMIN_TREE = <?= json_encode([
+    'id' => $currentTree['id'] ?? null,
+    'slug' => $currentTree['slug'] ?? null,
+    'display_name' => $currentTree['display_name'] ?? null,
+    'role' => $currentTree['role'] ?? null,
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+// Keep the sidebar switcher in step with the session. Browsers may restore a
+// form value across a reload, which would otherwise leave the previous tree
+// showing after "Open" on the Trees page.
+function syncTreeSwitcher() {
+    var sel = document.getElementById('treeSwitcher');
+    if (sel && typeof ADMIN_TREE !== 'undefined' && ADMIN_TREE && ADMIN_TREE.id) {
+        sel.value = ADMIN_TREE.id;
+    }
+}
+syncTreeSwitcher();
+document.addEventListener('DOMContentLoaded', syncTreeSwitcher);
+window.addEventListener('pageshow', syncTreeSwitcher);
 
 // ── Toast helper (global) ─────────────────────────────────
 function showToast(msg, type) {
@@ -595,11 +715,13 @@ document.addEventListener('click', function(e) {
 var _pageInitDone = {};
 var _tidyFocus = null;
 
-var ADMIN_PAGES = ['dashboard','members','users','photos','tidy','settings','activity','account'];
+var ADMIN_PAGES = <?= json_encode($adminPages) ?>;
 var ADMIN_TITLES = {
     dashboard: 'Dashboard',
-    members:   'Members',
     users:     'Users',
+    trees:     'Trees',
+    instance:  'Instance Settings',
+    members:   'Members',
     photos:    'Photos & Media',
     tidy:      'Tidy up',
     settings:  'Tree Settings',
@@ -635,7 +757,7 @@ function showPage(page, opts) {
 
     var titleEl = document.getElementById('topBarTitle');
     if (titleEl) titleEl.textContent = ADMIN_TITLES[page] || page;
-    document.title = (ADMIN_TITLES[page] || page) + ' · FamilyTree';
+    document.title = (ADMIN_TITLES[page] || page) + ' · ' + <?= json_encode($instanceName, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
     // Close mobile sidebar
     document.getElementById('sidebar')?.classList.remove('sb-open');
@@ -664,10 +786,13 @@ function showPage(page, opts) {
                 if (typeof setFormHeader === 'function') setFormHeader(null);
                 break;
             case 'users':
-                // The Linked Member picker needs the member list, which is
-                // otherwise only fetched when the Members page is opened.
-                if (typeof fetchMembers === 'function' && members.length === 0) fetchMembers();
                 if (typeof fetchUsers === 'function') fetchUsers();
+                break;
+            case 'trees':
+                if (typeof loadInstanceTrees === 'function') loadInstanceTrees();
+                break;
+            case 'instance':
+                if (typeof loadInstanceSettings === 'function') loadInstanceSettings();
                 break;
             case 'photos':
                 if (typeof fetchMedia === 'function' && mediaItems.length === 0) fetchMedia();
@@ -686,7 +811,6 @@ function showPage(page, opts) {
                 break;
             case 'account':
                 if (typeof loadAccount === 'function') loadAccount();
-                if (typeof loadKeys === 'function') loadKeys();
                 break;
         }
     } else if (page === 'tidy' && member !== _tidyFocus) {

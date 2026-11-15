@@ -89,17 +89,17 @@ header('X-Robots-Tag: noindex, nofollow');
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/print.css?v=<?= FT_VERSION ?>">
+  <link rel="stylesheet" href="/assets/print.css?v=<?= FT_ASSET_VERSION ?>">
   <script>
     window.FT_TREE_SLUG = "<?= $treeSlug ?>";
     window.FT_TREE_NAME = "<?= $treeName ?>";
     window.FT_SETTINGS  = <?= json_encode($pageSettings, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     window.FT_PRINT_KIND = "<?= $kind ?>";
   </script>
-  <script src="/assets/tree-themes.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/assets/emblems.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/assets/print.js?v=<?= FT_VERSION ?>"></script>
+  <script src="/assets/tree-themes.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/assets/emblems.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/assets/print.js?v=<?= FT_ASSET_VERSION ?>"></script>
 </head>
 <body>
   <header class="pr-bar">

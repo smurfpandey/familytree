@@ -1,4 +1,10 @@
 FROM php:8.5-apache
+
+# Cache-busting stamp for CSS/JS, passed by CI with the commit SHA. A local
+# build leaves it empty and PHP uses "dev".
+ARG FT_ASSET_VERSION=
+ENV FT_ASSET_VERSION=${FT_ASSET_VERSION}
+
 RUN apt-get update && apt-get install -y --no-install-recommends libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev libzip-dev libcurl4-openssl-dev libsqlite3-dev libonig-dev \
   && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
   && docker-php-ext-install -j"$(nproc)" pdo_sqlite gd curl mbstring zip \

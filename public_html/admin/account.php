@@ -64,7 +64,7 @@
 
 </div>
 
-<!-- Connect Claude: keys for the MCP connector (mcp.php) -->
+<!-- Weekly digest email -->
 <div class="card" id="digestCard" style="margin-top:24px;">
     <div class="card-header"><h3>Weekly email</h3></div>
     <div class="card-body">
@@ -73,28 +73,6 @@
             <span>Every Monday, email me the week's birthdays, anniversaries, remembrance days and tithi days in my family trees.<br>
             <small style="color:var(--text-muted)">Only sent when something is coming up.</small></span>
         </label>
-    </div>
-</div>
-
-<div class="card" id="claudeCard" style="margin-top:24px;">
-    <div class="card-header"><h3>Connect Claude</h3></div>
-    <div class="card-body">
-        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px;line-height:1.6;">
-            Let Claude read and edit your family trees: ask "how is Ravi related to Kamla?", "add my cousin Neha, born 3 May 1994 in Patna, daughter of Arun",
-            or paste a GEDCOM file to import. Make a key, then add the link in claude.ai or Claude Desktop under
-            <b>Settings &gt; Connectors &gt; Add custom connector</b>, or in Claude Code with
-            <code>claude mcp add --transport http familytree "&lt;link&gt;"</code>.
-            Claude gets your role in each tree, nothing more.
-        </p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
-            <input id="keyLabel" class="form-control" placeholder="Name this key, e.g. Claude Desktop" maxlength="100" style="max-width:280px;">
-            <button class="btn btn-primary" type="button" onclick="makeKey()">Make a connector link</button>
-        </div>
-        <div id="newKey" hidden style="border:1px solid var(--border-focus);border-radius:10px;padding:12px;margin-bottom:12px;">
-            <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Copy this link now: it is shown only once.</div>
-            <div style="display:flex;gap:8px;"><input id="newKeyUrl" class="form-control" readonly style="flex:1;font-family:ui-monospace,Consolas,monospace;font-size:12px;"><button class="btn btn-ghost" type="button" onclick="copyKey()">Copy</button></div>
-        </div>
-        <div id="keyList" style="font-size:13px;" data-sk="rows" data-n="2"></div>
     </div>
 </div>
 
@@ -119,7 +97,7 @@
     <div class="card-header"><h3 style="color:var(--red);">Delete my account</h3></div>
     <div class="card-body">
         <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.6;">
-            Deletes your login, your Claude connector keys and your memberships of other people's trees.
+            Deletes your login and your memberships of other people's trees.
             For each tree you own, you choose: delete it, or hand it to one of its editors.
             This can't be undone.
         </p>

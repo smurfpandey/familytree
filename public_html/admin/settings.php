@@ -12,6 +12,67 @@
 
   <div class="settings-wrap">
 
+    <?php
+    $treeUsers = [];
+    try {
+        $tu = $pdo->prepare("SELECT u.display_name, u.email, tu.role
+                             FROM tenant_users tu JOIN family_users u ON u.id = tu.user_id
+                             WHERE tu.tenant_id = ?
+                             ORDER BY tu.role = 'owner' DESC, u.display_name");
+        $tu->execute([$currentTree['id'] ?? getAdminTenantId()]);
+        $treeUsers = $tu->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { $treeUsers = []; }
+    $canUseInstance = !empty($_SESSION['admin_user']['id']) && ft_can_manage_instance($pdo, (int)$_SESSION['admin_user']['id']);
+    ?>
+
+    <!-- ── General: this tree's name and link ──────────────────── -->
+    <section class="settings-card" id="generalSection">
+      <h2 class="settings-heading">General</h2>
+      <p class="settings-desc">The family name shown across the admin and on the tree, and the last part of its public link.</p>
+      <?php if (($_SESSION['admin_user']['role'] ?? 'viewer') === 'owner'): ?>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="treeName">Family name</label>
+          <input type="text" id="treeName" class="form-control" maxlength="120" value="<?= htmlspecialchars($currentTree['display_name'] ?? '', ENT_QUOTES) ?>">
+        </div>
+        <div class="form-group">
+          <label for="treeSlug">Link name</label>
+          <input type="text" id="treeSlug" class="form-control" maxlength="80" pattern="[A-Za-z0-9-]*" value="<?= htmlspecialchars($currentTree['slug'] ?? '', ENT_QUOTES) ?>">
+          <span class="form-hint">/tree/<span id="treeSlugPreview"><?= htmlspecialchars($currentTree['slug'] ?? '', ENT_QUOTES) ?></span></span>
+        </div>
+      </div>
+      <div class="dh-actions">
+        <button type="button" class="btn btn-primary" onclick="saveTreeGeneral()">Save general settings</button>
+        <span class="dh-msg" id="treeGeneralMsg"></span>
+      </div>
+      <?php else: ?>
+      <p class="dh-hint" style="margin:0;">
+        <?= htmlspecialchars($currentTree['display_name'] ?? 'This tree', ENT_QUOTES) ?> ·
+        /tree/<?= htmlspecialchars($currentTree['slug'] ?? '', ENT_QUOTES) ?>. Only a tree owner can change the name or link.
+      </p>
+      <?php endif; ?>
+    </section>
+
+    <!-- ── Who can open this tree ──────────────────────────────── -->
+    <section class="settings-card" id="treeAccessSection">
+      <h2 class="settings-heading">Who can open this tree</h2>
+      <p class="settings-desc">
+        Accounts and tree access belong to the whole instance, not to one tree.
+        <?php if ($canUseInstance): ?>Manage every account and every owned tree in <a href="#users" onclick="showPage('users');return false;">Instance → Users</a>.<?php else: ?>Ask a tree owner to change who can open this tree.<?php endif; ?>
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <?php if (!$treeUsers): ?>
+          <p class="dh-hint" style="margin:0;">No accounts can open this tree yet.</p>
+        <?php else: foreach ($treeUsers as $tuRow): ?>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong style="min-width:140px;"><?= htmlspecialchars($tuRow['display_name'], ENT_QUOTES) ?></strong>
+            <span class="dh-hint" style="margin:0;flex:1;"><?= htmlspecialchars($tuRow['email'], ENT_QUOTES) ?></span>
+            <span class="badge <?= $tuRow['role'] === 'owner' ? 'badge-purple' : ($tuRow['role'] === 'editor' ? 'badge-blue' : 'badge-gray') ?>"><?= htmlspecialchars(ucfirst($tuRow['role']), ENT_QUOTES) ?></span>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+    </section>
+
     <!-- ── Tree Visibility ──────────────────────────────────────── -->
     <section class="settings-card" id="visibilitySection">
       <h2 class="settings-heading">
@@ -211,6 +272,25 @@
         <span class="dh-msg" id="dhMsg"></span>
       </div>
     </section>
+
+    <?php if (($_SESSION['admin_user']['role'] ?? 'viewer') === 'owner'): ?>
+    <!-- ── Delete this tree (not the account) ───────────────────── -->
+    <section class="settings-card" id="deleteTreeSection">
+      <h2 class="settings-heading">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="margin-right:8px;vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+        Delete this tree
+      </h2>
+      <p class="settings-desc">
+        This removes this family tree and everything in it. Your account and your other trees stay.
+        To leave the tree as a member instead, ask another owner to remove you from Users.
+      </p>
+      <div class="dh-actions" style="align-items:center;">
+        <input type="text" id="deleteTreeConfirm" class="form-control" style="max-width:280px;" placeholder="Type the tree name" autocomplete="off">
+        <button type="button" class="btn btn-danger" onclick="deleteCurrentTree()">Delete tree</button>
+        <span class="dh-msg" id="deleteTreeMsg"></span>
+      </div>
+    </section>
+    <?php endif; ?>
 
   </div><!-- /.settings-wrap -->
 </div><!-- /#settingsTab -->

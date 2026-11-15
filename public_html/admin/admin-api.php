@@ -22,6 +22,15 @@ if (empty($_SESSION['admin_logged_in'])) { http_response_code(401); echo json_en
 validateCsrf();
 
 $method   = $_SERVER['REQUEST_METHOD'];
+
+// Viewers can read the tree but not change people. The admin UI hides the
+// edit controls too; this is the server-side check for the active tree.
+if ($method !== 'GET' && !in_array($_SESSION['admin_user']['role'] ?? 'viewer', ['owner', 'editor'], true)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Viewers cannot change the tree. Ask an owner to make you an editor.']);
+    exit;
+}
+
 $id       = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $tenantId = getAdminTenantId();
 $tenant   = loadTenant($pdo, $tenantId);

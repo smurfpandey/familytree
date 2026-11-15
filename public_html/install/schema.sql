@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS `family_users` (
   `password_reset_expires_at` datetime DEFAULT NULL COMMENT 'Token expires 1 hour after generation'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `instance_settings` (
+  `skey` varchar(64) NOT NULL,
+  `svalue` longtext DEFAULT NULL,
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`skey`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Settings for this FamilyTree instance, not for one tree';
+
 CREATE TABLE IF NOT EXISTS `privacy_settings` (
   `tenant_id` char(36) NOT NULL,
   `field_key` varchar(64) NOT NULL,
@@ -184,19 +191,6 @@ CREATE TABLE IF NOT EXISTS `geo_cache` (
   PRIMARY KEY (`place`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
--- 2026-10-28: keys for the Claude connector (mcp.php); only a hash of each key is kept
-CREATE TABLE IF NOT EXISTS `api_keys` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `key_hash` char(64) NOT NULL,
-  `label` varchar(100) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `last_used_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_key_hash` (`key_hash`),
-  KEY `idx_api_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2026-10-29: every change to a person, so it can be undone; deleted people sit here as the bin
 CREATE TABLE IF NOT EXISTS `member_history` (

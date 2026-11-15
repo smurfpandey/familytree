@@ -125,3 +125,41 @@ async function savePrivacySettings() {
         btn.textContent = 'Save Settings';
     }
 }
+
+/* ── Tree Settings → General (name and link, not instance-wide) ─────── */
+async function saveTreeGeneral() {
+    if (typeof ADMIN_TREE === 'undefined' || !ADMIN_TREE || !ADMIN_TREE.id) return;
+    const nameEl = document.getElementById('treeName');
+    const slugEl = document.getElementById('treeSlug');
+    const msg = document.getElementById('treeGeneralMsg');
+    const name = (nameEl?.value || '').trim();
+    const slug = (slugEl?.value || '').trim();
+    if (!name) {
+        if (msg) { msg.textContent = 'Give the family a name.'; msg.className = 'dh-msg bad'; }
+        nameEl?.focus();
+        return;
+    }
+    if (msg) { msg.textContent = 'Saving…'; msg.className = 'dh-msg'; }
+    try {
+        const res = await csrfFetch('tree-api.php', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'rename', tenant_id: ADMIN_TREE.id, display_name: name, slug: slug })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok || data.error) {
+            if (msg) { msg.textContent = data.error || 'Could not save these settings.'; msg.className = 'dh-msg bad'; }
+            return;
+        }
+        if (msg) { msg.textContent = 'Saved'; msg.className = 'dh-msg ok'; }
+        // The sidebar, live link and browser title all name this tree.
+        window.setTimeout(function () { window.location.reload(); }, 350);
+    } catch (err) {
+        console.error('save tree general', err);
+        if (msg) { msg.textContent = 'Could not save these settings.'; msg.className = 'dh-msg bad'; }
+    }
+}
+
+document.getElementById('treeSlug')?.addEventListener('input', function () {
+    const preview = document.getElementById('treeSlugPreview');
+    if (preview) preview.textContent = this.value;
+});

@@ -14,6 +14,7 @@
  * server is wiped.
  */
 require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/instance.php';
 
 /** demo and featured trees are only ever deleted by their own owner */
 function ft_tree_is_demo(array $tenant): bool {
@@ -102,6 +103,7 @@ function ft_delete_tree(PDO $pdo, array $tenant): array {
         $pdo->prepare("DELETE FROM tenants WHERE id = ?")->execute([$tid]);
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
+    ft_instance_forget_tree($pdo, $tid);
 
     // 3. files: photos, videos and voice notes no other tree in this database still uses, plus the tree's emblem and share images
     $dir = getenv('FT_UPLOADS_DIR') ?: dirname(__DIR__) . '/admin/uploads';      // the env override is for tools/test-account-delete.php
@@ -163,7 +165,6 @@ function ft_delete_account(PDO $pdo, int $uid, array $choices): array {
         $pdo->prepare("UPDATE tenants SET owner_user_id = NULL WHERE owner_user_id = ?")->execute([$uid]);   // demo trees owned by nobody stay so
         $pdo->prepare("UPDATE family_activity_logs SET user_id = NULL, ip_address = NULL, user_agent = NULL WHERE user_id = ?")->execute([$uid]);
         try { $pdo->prepare("UPDATE member_history SET user_id = NULL, user_name = 'A former member' WHERE user_id = ?")->execute([$uid]); } catch (PDOException $e) {}
-        try { $pdo->prepare("DELETE FROM api_keys WHERE user_id = ?")->execute([$uid]); } catch (PDOException $e) {}
         $pdo->prepare("DELETE FROM family_users WHERE id = ?")->execute([$uid]);
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }

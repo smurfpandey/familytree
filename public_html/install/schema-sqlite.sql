@@ -93,6 +93,12 @@ CREATE TABLE IF NOT EXISTS `feature_flags` (
   PRIMARY KEY (`tenant_id`,`feature_key`)
 );
 
+CREATE TABLE IF NOT EXISTS `instance_settings` (
+  `skey` TEXT NOT NULL PRIMARY KEY,
+  `svalue` TEXT DEFAULT NULL,
+  `updated_at` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS `privacy_settings` (
   `tenant_id` TEXT NOT NULL,
   `field_key` TEXT NOT NULL,
@@ -143,16 +149,6 @@ CREATE TABLE IF NOT EXISTS `geo_cache` (
   `lng`         REAL DEFAULT NULL,
   `resolved_at` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`place`)
-);
-
-CREATE TABLE IF NOT EXISTS `api_keys` (
-  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-  `user_id` INTEGER NOT NULL,
-  `key_hash` TEXT NOT NULL,
-  `label` TEXT DEFAULT NULL,
-  `created_at` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_used_at` TEXT DEFAULT NULL,
-  UNIQUE (`key_hash`)
 );
 
 CREATE TABLE IF NOT EXISTS `member_history` (

@@ -40,7 +40,7 @@ foreach ([['T-alpha', $asha, 'owner'], ['T-beta', $asha, 'owner'], ['T-alpha', $
           ['T-gamma', $bina, 'owner'], ['T-gamma', $asha, 'owner'], ['T-demo', $asha, 'editor']] as [$t, $u, $r])
     $q("INSERT INTO tenant_users (tenant_id, user_id, role) VALUES (?, ?, ?)", [$t, $u, $r]);
 
-// family data, photos on disk (one shared with gamma), keys, logs, settings
+// family data, photos on disk (one shared with gamma), logs, settings
 ft_actor(['id' => $asha, 'name' => 'Asha']);
 file_put_contents("$tmp/uploads/beta.jpg", 'x'); file_put_contents("$tmp/uploads/thumb_beta.webp", 'x');
 file_put_contents("$tmp/uploads/shared.jpg", 'x'); file_put_contents("$tmp/uploads/gamma.jpg", 'x'); file_put_contents("$tmp/uploads/alpha.jpg", 'x');
@@ -51,8 +51,6 @@ foreach ([$alpha, $beta, $gamma, $demo] as $t) {
     $q("INSERT INTO privacy_settings (tenant_id, field_key, visibility) VALUES (?, 'birth_date', 'private')", [$t['id']]);
     $q("INSERT INTO family_activity_logs (tenant_id, user_id, action, ip_address) VALUES (?, ?, 'edit', '10.0.0.1')", [$t['id'], $asha]);
 }
-$q("INSERT INTO api_keys (user_id, key_hash) VALUES (?, ?)", [$asha, str_repeat('a', 64)]);
-$q("INSERT INTO api_keys (user_id, key_hash) VALUES (?, ?)", [$bina, str_repeat('b', 64)]);
 
 // what the account page is offered
 $plan = []; foreach (ft_owned_trees($pdo, $asha) as $t) $plan[$t['slug']] = $t;
@@ -77,7 +75,6 @@ assert($done === ['deleted' => ['beta'], 'transferred' => ['alpha']], 'reported 
 // Asha is gone
 assert($n("SELECT COUNT(*) FROM family_users WHERE id = ?", [$asha]) === 0, 'account row gone');
 assert($n("SELECT COUNT(*) FROM tenant_users WHERE user_id = ?", [$asha]) === 0, 'memberships gone');
-assert($n("SELECT COUNT(*) FROM api_keys WHERE user_id = ?", [$asha]) === 0, 'her keys gone');
 assert($n("SELECT COUNT(*) FROM family_activity_logs WHERE user_id = ? OR ip_address IS NOT NULL", [$asha]) === 0, 'her log lines anonymised');
 assert($n("SELECT COUNT(*) FROM member_history WHERE user_id = ?", [$asha]) === 0, 'her name is off the history');
 
@@ -96,7 +93,6 @@ assert(count(ft_store($pdo, $alpha)->members()) === 1 && is_file("$tmp/uploads/a
 // Bina's tree, the demo tree and Bina's account are untouched
 assert($n("SELECT owner_user_id FROM tenants WHERE id = 'T-gamma'") === $bina && count(ft_store($pdo, $gamma)->members()) === 1, 'gamma untouched');
 assert($n("SELECT COUNT(*) FROM tenants WHERE id = 'T-demo'") === 1 && count(ft_store($pdo, $demo)->members()) === 1, 'demo tree untouched');
-assert($n("SELECT COUNT(*) FROM api_keys WHERE user_id = ?", [$bina]) === 1, 'Bina\'s key kept');
 assert($n("SELECT COUNT(*) FROM tenant_users WHERE user_id = ?", [$bina]) === 2, 'Bina keeps alpha and gamma (beta went)');
 
 // a single tree delete: gamma by its owner

@@ -34,9 +34,8 @@ try {
     try { if ($store) { $storeMembers = $store->members(); $memberCount = count($storeMembers); $mediaCount = $store->countMedia(); } }
     catch (Throwable $e) { $storeError = $e->getMessage(); }
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM family_users WHERE tenant_id = ?");
-    $stmt->execute([$tenantId]);
-    $userCount = (int)$stmt->fetchColumn();
+    // Accounts belong to the whole instance; switching trees does not change them.
+    $userCount = (int)$pdo->query("SELECT COUNT(*) FROM family_users")->fetchColumn();
 
     // ── Upcoming events (birthdays + anniversaries next 30 days) ──
     $today = new DateTime('today');

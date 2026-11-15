@@ -10,6 +10,7 @@ define('FT_APP', 1);
 define('FT_EMBEDDABLE', !empty($_GET['embed']));      // /embed/{slug}: config.php lets other sites frame this page
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/privacy.php';
+require_once __DIR__ . '/includes/trees.php';
 require_once __DIR__ . '/includes/brand.php';
 
 // ── 1. Resolve slug ──────────────────────────────────────────────────────────
@@ -50,8 +51,12 @@ if (!$tenant) {
 // ── 2. Visibility enforcement ────────────────────────────────────────────────
 $visibility = $tenant['visibility'] ?? 'public';
 
-// For private trees, show a friendly locked page, except to the tree's own logged-in family
-$isMember = !empty($_SESSION['admin_logged_in']) && !empty($_SESSION['tenant_id']) && $_SESSION['tenant_id'] === $tenant['id'];
+// For private trees, show a friendly locked page, except to any account that is
+// a member of this tree — even when its admin session is currently on another tree.
+$viewerMembership = (!empty($_SESSION['admin_logged_in']) && !empty($_SESSION['admin_user']['id']))
+    ? ft_user_membership($pdo, (int)$_SESSION['admin_user']['id'], (string)$tenant['id'])
+    : null;
+$isMember = (bool)$viewerMembership;
 if ($visibility === 'private' && !$isMember) {
     http_response_code(403);
 ?><!DOCTYPE html>
@@ -107,7 +112,8 @@ $embedTheme  = in_array($_GET['theme'] ?? '', ['light', 'dark'], true) ? $_GET['
 $embedAccent = preg_match('/^[0-9a-fA-F]{6}$/', $_GET['accent'] ?? '') ? '#' . $_GET['accent'] : null;
 $emblemOn = $settings['emblem']['kind'] !== 'none';
 $canEdit = (!empty($_SESSION['admin_logged_in']) &&
-            (!empty($_SESSION['tenant_id']) && $_SESSION['tenant_id'] === $tenant['id']));
+            !empty($_SESSION['tenant_id']) && $_SESSION['tenant_id'] === $tenant['id'] &&
+            $viewerMembership && ft_can_edit_tree($viewerMembership));
 $csrfToken = $_SESSION['csrf_token'] ?? '';
 ?><!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -146,16 +152,16 @@ $csrfToken = $_SESSION['csrf_token'] ?? '';
   <meta name="robots" content="noindex, nofollow">
   <?php endif; ?>
 
-  <link rel="stylesheet" href="/assets/style.css?v=<?= FT_VERSION ?>">
+  <link rel="stylesheet" href="/assets/style.css?v=<?= FT_ASSET_VERSION ?>">
 
   <!-- D3 v7.9.2 (vendored) — tree renderer + events timeline. Self-hosted so the viewer works offline and d3js.org rebuilds can't break the SRI pin. -->
-  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_VERSION ?>"></script>
+  <script defer src="/assets/vendor/d3.min.js?v=<?= FT_ASSET_VERSION ?>"></script>
   <?php if ($view === 'map'): ?>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous"></script>
   <?php endif; ?>
   <?php if ($view === 'relation'): ?>
-  <link rel="stylesheet" href="/assets/relation.css?v=<?= FT_VERSION ?>">
+  <link rel="stylesheet" href="/assets/relation.css?v=<?= FT_ASSET_VERSION ?>">
   <?php endif; ?>
 
   <!-- Inject tenant vars for JS layers -->
@@ -171,26 +177,26 @@ $csrfToken = $_SESSION['csrf_token'] ?? '';
     // the saved light/dark choice before first paint, so the loading skeleton is already the right colour
     try { if (localStorage.getItem("family_tree_theme") === "dark") document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}<?php endif; ?>
   </script>
-  <script src="/assets/tree-themes.js?v=<?= FT_VERSION ?>"></script>
+  <script src="/assets/tree-themes.js?v=<?= FT_ASSET_VERSION ?>"></script>
 </head>
 <body<?= $embed ? ' class="ft-embed"' : '' ?><?= $embedAccent ? ' style="--accent:' . $embedAccent . '"' : '' ?>>
   <div id="app-shell" data-view="<?= $view ?>"></div>
 
   <!-- Load order: config → utils → controller → shell → member-card → view -->
-  <script defer src="/assets/emblems.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/config.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/utils.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/controller.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/shell/shell.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/assets/panchang.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/shell/member-extra.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/assets/kinship-hi.js?v=<?= FT_VERSION ?>"></script>
-  <script defer src="/shell/member-card.js?v=<?= FT_VERSION ?>"></script>
+  <script defer src="/assets/emblems.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/config.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/utils.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/controller.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/shell/shell.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/assets/panchang.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/shell/member-extra.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/assets/kinship-hi.js?v=<?= FT_ASSET_VERSION ?>"></script>
+  <script defer src="/shell/member-card.js?v=<?= FT_ASSET_VERSION ?>"></script>
   <?php if ($view === 'custom'): ?>
-  <script defer src="/custom/custom-tree.js?v=<?= FT_VERSION ?>"></script>
+  <script defer src="/custom/custom-tree.js?v=<?= FT_ASSET_VERSION ?>"></script>
   <!-- PNG/PDF export libraries load on first use (see loadExportLibs in member-card.js) -->
   <?php else: ?>
-  <script defer src="/views/<?= $view ?>.js?v=<?= FT_VERSION ?>"></script>
+  <script defer src="/views/<?= $view ?>.js?v=<?= FT_ASSET_VERSION ?>"></script>
   <?php endif; ?>
 </body>
 </html>

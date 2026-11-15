@@ -66,5 +66,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            FT_ASSET_VERSION=${{ github.sha }}
           provenance: true
           sbom: true

@@ -8,11 +8,22 @@
  * environment. See docker-compose.yml for the optional keys.
  */
 
-// The release, stamped on every script and style URL so browsers and CDNs refetch after an update
-define('FT_VERSION', '8.6.4');
+// ── Versioning ─────────────────────────────────────────────────────────────
+// Schema version: bump this only when install/schema.sql or
+// install/schema-sqlite.sql changes. SQLite installations re-run the schema
+// once per value (the file is safe to re-run).
+const FT_SCHEMA_VERSION = '9';
+
+/**
+ * Cache-busting stamp for CSS and JS, supplied by the build through the
+ * environment. CI passes the commit SHA for container images; local builds
+ * that leave it empty use "dev" (hard-refresh to pick up asset changes).
+ */
+define('FT_ASSET_VERSION', getenv('FT_ASSET_VERSION') ?: 'dev');
 
 // ── 1. Includes ────────────────────────────────────────────────────────────
-require_once __DIR__ . '/includes/db.php';   // ft_storage_dir(), ft_db_config_from_env()
+require_once __DIR__ . '/includes/db.php';        // ft_storage_dir(), ft_db_config_from_env()
+require_once __DIR__ . '/includes/instance.php';  // instance-wide settings
 
 // ── 2. Session (secure, single start) ─────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
@@ -69,12 +80,12 @@ if (!$installed && !defined('FT_INSTALLER') && !str_contains($_SERVER['SCRIPT_NA
     exit;
 }
 // SQLite installs (and the desktop app) upgrade themselves: the schema file is
-// safe to re-run, so run it once per version.
+// safe to re-run, so run it once per schema version.
 if ($installed && $pdo instanceof PDO && $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
     $mark = ft_storage_dir() . '/schema-version';
-    if (@file_get_contents($mark) !== FT_VERSION) {
+    if (@file_get_contents($mark) !== FT_SCHEMA_VERSION) {
         ft_run_sql_file($pdo, ft_schema_file('sqlite'));
-        @file_put_contents($mark, FT_VERSION, LOCK_EX);
+        @file_put_contents($mark, FT_SCHEMA_VERSION, LOCK_EX);
     }
 }
 
@@ -188,8 +199,7 @@ function ft_default_tenant_id(): string {
     if ($id === '') {
         global $pdo;
         if ($pdo instanceof PDO) {
-            try { $id = (string)($pdo->query('SELECT id FROM tenants ORDER BY created_at, id LIMIT 1')->fetchColumn() ?: ''); }
-            catch (Throwable $e) { $id = ''; }
+            $id = ft_instance_default_tenant_id($pdo);
         }
     }
     return $id;

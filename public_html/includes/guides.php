@@ -27,14 +27,14 @@ function ft_guides(): array {
   <li>Put FamilyTree on your server or computer (see <a href="/guide/self-hosting">Run FamilyTree on your own server</a>) and open <code>/install/</code>.</li>
   <li>Choose a database: a SQLite file needs nothing set up; MySQL or Postgres works too.</li>
   <li>Enter your name, email and a password of at least 8 characters, and give the tree a name, for example <em>Sharma family</em>. The link is made from it.</li>
-  <li>Sign in at <code>/admin/</code>. You are the tree's owner; add relatives as editors or viewers from <b>Users</b>.</li>
+  <li>Sign in at <code>/admin/</code>. You are the tree's owner; add relatives as editors or viewers from <b>Instance &gt; Users</b>.</li>
 </ol>
 <h2 id="first-people">Add the first people</h2>
 <p>You land on the <b>Dashboard</b>. The quickest way to start is on the tree itself: open <b>View Family Tree</b>, turn on <b>Build Mode</b> and add yourself, then your parents, partner and children. <a href="/guide/adding-people">Adding people</a> shows each step.</p>
 <p>Already have a tree on Ancestry, MyHeritage or another site? <a href="/guide/importing">Import it</a> instead and skip the typing.</p>
 {$fig('dashboard', 'The admin dashboard with counts of members, users, photos and upcoming events')}
 <h2 id="share">Share it</h2>
-<p>New trees are private. When you are ready, choose who can see it in <a href="/guide/privacy">Tree Settings</a>, then press <b>Share</b> on the tree to send the link on WhatsApp or copy it.</p>
+<p>New trees are private by default. When you are ready, choose who can see it in <a href="/guide/privacy">Tree Settings</a>, then press <b>Share</b> on the tree to send the link on WhatsApp or copy it.</p>
 {$note('<b>Living people stay protected.</b> Even on a public tree, the birth dates, birthplaces, current homes and social links of living people are hidden from visitors unless you choose otherwise.')}
 HTML],
 
@@ -157,19 +157,19 @@ HTML],
     'family-logins' => ['section' => 'Share and show', 'title' => 'Let your family help', 'mins' => 2,
         'summary' => 'Give relatives their own login as a viewer, an editor or a second owner.',
         'body' => <<<HTML
-<p>Building a tree goes faster when an aunt can add her side of the family herself. Give each relative their own login.</p>
+<p>Building a tree goes faster when an aunt can add her side of the family herself. Give each relative their own login. An account belongs to the whole installation, and you can give it access to any tree you own.</p>
 <ol class="g-steps">
-  <li>Open <b>Admin &gt; Users</b>.</li>
-  <li>Under <b>Add User</b>, enter their name, email and a first password, and send them those details yourself.</li>
-  <li>Choose a role:
+  <li>Open <b>Instance &gt; Users</b>.</li>
+  <li>Under <b>New account</b>, enter their name, email and a first password, and send them those details yourself.</li>
+  <li>Tick the trees they should be able to open, and choose a role in each one:
     <ul>
       <li><b>Viewer</b> can see the whole tree, including what you marked members-only.</li>
       <li><b>Editor</b> can add and change people and photos.</li>
-      <li><b>Owner</b> can do everything, including settings, imports and other users.</li>
+      <li><b>Owner</b> can do everything, including settings, imports and access to that tree.</li>
     </ul></li>
-  <li>Optionally, under <b>Linked member</b>, pick their own person in the tree.</li>
+  <li>Optionally, for each tree, pick their own <b>Linked member</b> card.</li>
 </ol>
-{$fig('users', 'The Users page with the list of logins and the Add User form')}
+{$fig('users', 'The Users page with the instance accounts and their tree access')}
 <p>Every change is recorded in <b>Activity Log</b>, so you can see who added or changed what.</p>
 HTML],
 
@@ -419,35 +419,6 @@ HTML],
   <li><b>Family Tree Maker</b>: <b>File &gt; Export</b>, choose GEDCOM. Do not password-protect the zip.</li>
 </ul>
 {$note('<b>Two things to check.</b> No site puts photos inside a GEDCOM file, so download the photos you want separately and add them on the Photos page. And many sites offer to hide or blank out living people when exporting; turn that off if you want your whole family to come across.', 'warn')}
-HTML],
-
-    'claude' => ['section' => 'Bring and connect', 'title' => 'Connect Claude to your tree', 'mins' => 3,
-        'summary' => 'Ask Claude how two people are related, add relatives by describing them, or import a file by pasting it.',
-        'body' => <<<HTML
-<p>FamilyTree has a connector for Claude, the AI assistant. Once connected, you can talk to your tree:</p>
-<ul>
-  <li>"How is Ravi related to Kamla?"</li>
-  <li>"Whose birthdays are coming up this month?"</li>
-  <li>"Add my cousin Neha, born 3 May 1994 in Patna, daughter of Arun and Meena."</li>
-  <li>"Mohan moved to Bengaluru last year, update him."</li>
-  <li>"Here is a GEDCOM file from my uncle, add it to the tree."</li>
-</ul>
-<h2 id="key">1. Make a connector link</h2>
-<ol class="g-steps">
-  <li>Open <b>Admin &gt; Profile</b> and find <b>Connect Claude</b>.</li>
-  <li>Name the key, for example <em>Claude Desktop</em>, and press <b>Make a connector link</b>.</li>
-  <li>Copy the link. It is shown only once; if you lose it, make a new one.</li>
-</ol>
-{$fig('claude-card', 'The Connect Claude card with a new connector link and the list of keys')}
-<h2 id="add">2. Add it to Claude</h2>
-<ul>
-  <li><b>claude.ai or Claude Desktop</b>: <b>Settings &gt; Connectors &gt; Add custom connector</b>. Give it a name, paste the link, and add.</li>
-  <li><b>Claude Code</b>: <code>claude mcp add --transport http familytree "&lt;your link&gt;"</code></li>
-</ul>
-<p>Then ask Claude about your family in any chat.</p>
-<h2 id="safety">What Claude can do</h2>
-<p>Claude acts as you, with your role in each tree: a viewer can only ask questions, an editor can also add and change people, an owner can import and remove people. Claude asks before it changes anything when a name matches more than one person. Every change shows in the Activity Log.</p>
-{$note('The link works like a password. Do not share it. Press <b>Revoke</b> next to a key to cut it off at once.', 'warn')}
 HTML],
 
     /* ── Run it yourself ───────────────────────────────────────────────── */

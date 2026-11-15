@@ -1,12 +1,15 @@
 # FamilyTree
 
-A free, open source family tree for one family. Phone-first, shareable by link, and
-your data lives wherever you want it to: the app's own database, your own MySQL or
-Postgres, a Google Sheet, an Airtable base, a SQLite file, or a JSON file in your Drive.
+A free, open source family tree for your family, and the ones next to it. Phone-first,
+shareable by link, and your data lives wherever you want it to: the app's own database,
+your own MySQL or Postgres, a Google Sheet, an Airtable base, a SQLite file, or a JSON
+file in your Drive.
 
 Install it on your own server in five minutes, or run it on your computer as a
-desktop app. One install holds one family's tree: you are its owner, and you add
-relatives as editors or viewers.
+desktop app. One account can hold several separate trees: keep your side of the
+family and your spouse's side under one login, with the same person a co-owner of
+both. Trees never share members, photos, events, settings or data homes, and you
+switch between them from the sidebar.
 
 ## What it does
 
@@ -16,14 +19,37 @@ relatives as editors or viewers.
 - A family emblem: pick one of 18 built-in marks and a colour, or upload your own crest. It shows on the tree, on every card, on the share preview and as the tab icon.
 - Six tree looks (Heritage, Banyan, Royal, Minimal, Parchment, Marigold), each in light and dark.
 - Import from Ancestry, MyHeritage, FamilySearch, Geni, Gramps and others through GEDCOM (a `.zip` works too), or from a FamilyTree backup. Export GEDCOM, CSV or a full JSON backup.
-- Logins for the family: the owner adds relatives as editors (can change the tree) or viewers (can see a private tree).
+- Logins for the family: the owner adds relatives as editors (can change the tree) or viewers (can see a private tree). One account can belong to several trees, with a different role and member card in each.
 - Embed any tree, timeline, map or memory book on another website with one line of HTML (`/embed/{slug}`).
-- A Claude connector (MCP) at `/mcp`: ask how two people are related, add relatives by describing them, import a GEDCOM by pasting it. Keys are made per user on the Profile page.
 - Indian families first: relationship words (Mama, Bua, Tau, Bhabhi...) in Roman and Devanagari, tithis for every date, shraddh reminders by tithi, names in Hindi, native village and gotra.
 - History of every change with Undo, a bin for deleted people, and duplicate finding with a side-by-side merge.
 - Sources, approximate dates ("about 1890"), adoptive and step parents, marriages and divorces.
 - A printable poster (A3 to A0, vector PDF), a family book, a timeline or a map, with whole branches left out if you like; a weekly email of the family's coming week.
 - Privacy that defaults to safe: living people's dates and places are hidden from the public unless you say otherwise, per tree and per field.
+
+## One account, several trees
+
+A login belongs to the whole installation, not to one tree. The selector at the
+top of the sidebar switches between the trees that account can open, without
+signing out. A couple can both be owners of both sides of the family, each with
+their own role and linked member card in each tree.
+
+Every tree owner also sees an **Instance** area in the sidebar, kept separate
+from the current tree's settings:
+
+- **Users** lists every account on the installation, including accounts with no
+  tree yet. Give one account access to any tree you own, with a role, permissions
+  and linked member card per tree. Removing access to one tree keeps the account
+  and its other trees; deleting the account is a separate action.
+- **Trees** plants a new tree, opens any tree you belong to, hands a tree you own
+  to another owner, or deletes it.
+- **Instance Settings** holds the installation's name, the default tree visitors
+  see, and the visibility, look, Hindu-date and per-field privacy defaults copied
+  into new trees. It never changes a tree that already exists.
+
+A tree's own name, link, visibility, privacy, emblem and data home live in that
+tree's **Tree Settings**. Deleting a tree leaves the account and every other tree
+untouched. The last owner of a tree cannot be removed from it.
 
 ## Where the data lives ("data home")
 
@@ -91,7 +117,7 @@ local MTA).
 
 Upgrading: upload the new files over the old ones, keeping `storage/` (which holds
 the SQLite file, the encryption key and caches) and `admin/uploads/`. The app
-re-runs its schema once per version by itself.
+re-runs its schema once per schema version by itself.
 
 Nginx: route `/tree/{slug}` and `/tree/{slug}/{events|map|memories}` to
 `tree.php?slug=...&view=...`, deny `/storage` and `/tools`, and serve `/sitemap.xml`

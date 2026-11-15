@@ -46,8 +46,8 @@ if ($method === 'GET' && isset($_GET['digest'])) {
 }
 
 if ($method === 'GET') {
-    $stmt = $pdo->prepare("SELECT id, display_name, email, role FROM family_users WHERE id = ? AND tenant_id = ?");
-    $stmt->execute([$userId, $tenantId]);
+    $stmt = $pdo->prepare("SELECT id, display_name, email FROM family_users WHERE id = ?");
+    $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     echo json_encode($user ?: ['error' => 'Not found']);
     exit;
@@ -77,16 +77,16 @@ if ($method === 'POST') {
         }
 
         // Check email uniqueness (not self)
-        $stmt = $pdo->prepare("SELECT id FROM family_users WHERE email = ? AND id != ? AND tenant_id = ?");
-        $stmt->execute([$email, $userId, $tenantId]);
+        $stmt = $pdo->prepare("SELECT id FROM family_users WHERE email = ? AND id != ?");
+        $stmt->execute([$email, $userId]);
         if ($stmt->fetch()) {
             http_response_code(409);
             echo json_encode(['error' => 'Email already in use']);
             exit;
         }
 
-        $pdo->prepare("UPDATE family_users SET display_name = ?, email = ? WHERE id = ? AND tenant_id = ?")
-            ->execute([$name, $email, $userId, $tenantId]);
+        $pdo->prepare("UPDATE family_users SET display_name = ?, email = ? WHERE id = ?")
+            ->execute([$name, $email, $userId]);
 
         // Update session
         $_SESSION['admin_user']['display_name'] = $name;
@@ -117,8 +117,8 @@ if ($method === 'POST') {
             exit;
         }
 
-        $stmt = $pdo->prepare("SELECT password_hash FROM family_users WHERE id = ? AND tenant_id = ?");
-        $stmt->execute([$userId, $tenantId]);
+        $stmt = $pdo->prepare("SELECT password_hash FROM family_users WHERE id = ?");
+        $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user || !password_verify($currentPw, $user['password_hash'])) {
@@ -128,8 +128,8 @@ if ($method === 'POST') {
         }
 
         $hash = password_hash($newPw, PASSWORD_DEFAULT);
-        $pdo->prepare("UPDATE family_users SET password_hash = ? WHERE id = ? AND tenant_id = ?")
-            ->execute([$hash, $userId, $tenantId]);
+        $pdo->prepare("UPDATE family_users SET password_hash = ? WHERE id = ?")
+            ->execute([$hash, $userId]);
 
         echo json_encode(['ok' => true]);
         exit;

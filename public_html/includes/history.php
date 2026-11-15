@@ -7,7 +7,7 @@
  * batch reverts all of it (deleting someone also unlinks their children and partners: one batch).
  */
 
-/** who is making changes in this request: set by the admin session, the connector, or a script */
+/** who is making changes in this request: set by the admin session or a script */
 function ft_actor(?array $set = null): array {
     static $actor = null;
     if ($set !== null) $actor = $set;

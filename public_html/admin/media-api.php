@@ -35,7 +35,10 @@ try {
         if ($members === null) { $members = []; foreach ($store->members() as $m) $members[$m['id']] = $m; }
         if ($users === null) {
             $users = [];
-            $st = $pdo->prepare("SELECT id, display_name, member_id FROM family_users WHERE tenant_id = ?"); $st->execute([$tenantId]);
+            $st = $pdo->prepare("SELECT u.id, u.display_name, tu.member_id
+                                 FROM tenant_users tu JOIN family_users u ON u.id = tu.user_id
+                                 WHERE tu.tenant_id = ?");
+            $st->execute([$tenantId]);
             foreach ($st->fetchAll() as $u) $users[(int)$u['id']] = $u;
         }
         $out = [];

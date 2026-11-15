@@ -86,7 +86,7 @@ $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fi
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/auth.css?v=<?= FT_VERSION ?>">
+<link rel="stylesheet" href="/assets/auth.css?v=<?= FT_ASSET_VERSION ?>">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>a.btn-main { display: grid; place-items: center; margin-top: 8px; color: #fff !important; text-decoration: none; }</style>

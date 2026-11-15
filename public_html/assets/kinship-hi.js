@@ -6,7 +6,7 @@
  *   "MB" = mother's brother = Mama. Where Hindi cares who is older (Tau or Chacha, Didi, Jeth or Devar)
  *   it compares birth years; without them it gives both words.
  * Returns { roman, hindi, english, path } or null when there's no common word for the path.
- * The same table lives in includes/kinship.php (ft_indian_term) for the Claude connector.
+ * The same table lives in includes/kinship.php (ft_indian_term) on the server.
  */
 (function () {
   // [roman, devanagari] pairs; a function picks by age ('older' | 'younger' | null)

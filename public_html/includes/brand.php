@@ -27,7 +27,7 @@ function ft_brand(string $href = '/', string $sub = '', int $size = 28): string 
 
 /** The <head> lines every branded page shares: fonts, brand.css, icons, theme colour, and the saved light/dark choice. */
 function ft_brand_head(): string {
-    $v = defined('FT_VERSION') ? FT_VERSION : '1';
+    $v = defined('FT_ASSET_VERSION') ? FT_ASSET_VERSION : (getenv('FT_ASSET_VERSION') ?: 'dev');
     return '<script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("family_tree_theme")==="dark"?"dark":"light")}catch(e){}</script>' . "\n"
          . '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n"
          . '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' . "\n"

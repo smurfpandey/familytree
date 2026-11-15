@@ -13,7 +13,6 @@ if (preg_match('~^/tree/([a-zA-Z0-9_-]{1,80})/?$~', $u, $m)) { $_GET['slug'] = $
 if (preg_match('~^/tree/([a-zA-Z0-9_-]{1,80})/(events|map|memories|relation)/?$~', $u, $m)) { $_GET['slug'] = $m[1]; $_GET['view'] = $m[2]; chdir($root); require $root . '/tree.php'; return true; }
 if (preg_match('~^/tree/([a-zA-Z0-9_-]{1,80})/(poster|book)/?$~', $u, $m)) { $_GET['slug'] = $m[1]; $_GET['kind'] = $m[2]; chdir($root); require $root . '/print.php'; return true; }
 if ($u === '/sitemap.xml') { chdir($root); require $root . '/sitemap.php'; return true; }
-if (preg_match('~^/mcp/?$~', $u)) { chdir($root); require $root . '/mcp.php'; return true; }
 if (preg_match('~^/guide(?:/([a-z0-9-]{1,60}))?/?$~', $u, $m)) { $_GET['p'] = $m[1] ?? ''; chdir($root); require $root . '/guide.php'; return true; }
 if (preg_match('~^/embed/([a-zA-Z0-9_-]{1,80})(?:/(events|map|memories|relation))?/?$~', $u, $m)) { $_GET['slug'] = $m[1]; if (!empty($m[2])) $_GET['view'] = $m[2]; $_GET['embed'] = '1'; chdir($root); require $root . '/tree.php'; return true; }
 $dir = rtrim($u, '/');

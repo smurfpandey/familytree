@@ -1,120 +1,135 @@
-<?php // admin/users.php ?>
+<?php // admin/users.php - accounts on the whole instance, and tree access ?>
 <div class="page-title-bar">
-    <h2>Users</h2>
+    <div>
+        <h2>Users</h2>
+        <p class="settings-desc" style="margin:2px 0 0;">
+            Accounts belong to this whole instance. A person keeps one login and can be given
+            access to any trees you own. Their role and member card can be different in each tree.
+        </p>
+    </div>
+    <button class="btn btn-primary" type="button" onclick="focusNewAccount()">New account</button>
 </div>
-<div id="tabUsersContent">
-    <section class="table-wrap">
-        <div class="table-toolbar">
-            <div class="table-toolbar-left">
-                <div>
-                    <strong>Users</strong>
-                    <span id="userCountBadge" class="badge">0</span>
-                </div>
-                <span>Manage access &amp; roles</span>
+
+<section class="table-wrap">
+    <div class="table-toolbar">
+        <div class="table-toolbar-left">
+            <div>
+                <strong>Accounts</strong>
+                <span id="userCountBadge" class="badge">0</span>
             </div>
-            <div class="table-toolbar-right">
-                <input id="userSearch" type="text" class="input-chip" placeholder="Search email, name">
-                <button class="btn btn-primary" type="button" onclick="startNewUser()">New User</button>
+            <span>Every account on this instance, including accounts with no tree yet</span>
+        </div>
+        <div class="table-toolbar-right">
+            <input id="userSearch" type="text" class="input-chip" placeholder="Search name, email, tree">
+        </div>
+    </div>
+    <div class="table-scroll">
+        <table id="usersTable">
+            <thead>
+                <tr>
+                    <th data-ucol="display_name">Name</th>
+                    <th data-ucol="email">Email</th>
+                    <th data-ucol="trees">Tree access</th>
+                    <th data-ucol="last_login_at">Last login</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ── One account, with its tree access ───────────────────────── -->
+<section class="form-wrap" id="userDetailWrap" style="display:none;margin-top:12px;">
+    <div class="form-header">
+        <div class="form-header-text">
+            <h3 id="userDetailName">Account</h3>
+            <small id="userDetailEmail"></small>
+        </div>
+    </div>
+    <p class="form-note" id="userDetailNote"></p>
+
+    <div class="form-section">
+        <div class="section-title">Tree access</div>
+        <div id="userAssignments" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <p class="dh-hint" id="userOtherAccess" style="margin:8px 0 0;"></p>
+    </div>
+
+    <div class="form-section">
+        <div class="section-title">Give access to another tree</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="assignTree">Tree</label>
+                <select id="assignTree" class="form-control" onchange="loadAssignMembers()"></select>
+            </div>
+            <div class="form-group">
+                <label for="assignRole">Role</label>
+                <select id="assignRole" class="form-control">
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                    <option value="owner">Owner</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="assignMember">Linked member</label>
+                <select id="assignMember" class="form-control">
+                    <option value="">None</option>
+                </select>
             </div>
         </div>
-        <div class="table-scroll">
-            <table id="usersTable">
-                <thead>
-                    <tr>
-                        <th data-ucol="id">ID</th>
-                        <th data-ucol="display_name">Name</th>
-                        <th data-ucol="email">Email</th>
-                        <th data-ucol="role">Role</th>
-                        <th data-ucol="member">Linked Member</th>
-                        <th data-ucol="last_login_at">Last Login</th>
-                    </tr>
-                </thead>
-                <tbody data-sk="table" data-n="5"></tbody>
-            </table>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn btn-primary" type="button" onclick="addAssignment()">Add access</button>
+            <span class="dh-msg" id="assignMsg"></span>
         </div>
-    </section>
+    </div>
 
-    <section class="form-wrap" style="margin-top:12px;">
-        <div class="form-header">
-            <div class="form-header-text">
-                <h3 id="userFormTitle">Add User</h3>
-                <small id="userFormSubtitle"></small>
+    <div style="display:flex;gap:8px;margin-top:16px;align-items:center;">
+        <button class="btn btn-ghost" type="button" onclick="closeUserDetail()">Close</button>
+        <button class="btn btn-danger" type="button" onclick="deleteAccount()" id="deleteAccountBtn" style="margin-left:auto;display:none;">Delete account</button>
+    </div>
+</section>
+
+<!-- ── New account ─────────────────────────────────────────────── -->
+<section class="form-wrap" id="userCreateWrap" style="margin-top:12px;">
+    <div class="form-header">
+        <div class="form-header-text">
+            <h3>New account</h3>
+            <small>One login. Give it tree access now or later.</small>
+        </div>
+    </div>
+    <p class="form-note">The account owner changes their own name, email and password in Profile.</p>
+
+    <form id="userCreateForm" onsubmit="createAccount(event)">
+        <div class="form-section">
+            <div class="section-title">Account</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newAccountName">Display name</label>
+                    <input id="newAccountName" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="newAccountEmail">Email</label>
+                    <input id="newAccountEmail" type="email" required autocomplete="off">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newAccountPassword">Password</label>
+                    <input id="newAccountPassword" type="password" minlength="8" required autocomplete="new-password">
+                    <span class="form-hint">At least 8 characters. They can change it after signing in.</span>
+                </div>
             </div>
         </div>
-        <p class="form-note">Create login accounts for family or external users. Password is never shown once saved.</p>
 
-        <form id="userForm" onsubmit="saveUser(event)">
-            <input type="hidden" id="userId">
+        <div class="form-section" id="newAccountTreesSection">
+            <div class="section-title">Tree access</div>
+            <p class="dh-hint" style="margin:0 0 8px;">Only trees you own can be assigned here.</p>
+            <div id="newAccountTrees" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
 
-            <div class="form-section">
-                <div class="section-title">Basic</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="userDisplayName">Display Name</label>
-                        <input id="userDisplayName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userEmail">Email</label>
-                        <input id="userEmail" type="email" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="userRole">Role</label>
-                        <select id="userRole">
-                            <option value="viewer">Viewer</option>
-                            <option value="editor">Editor</option>
-                            <option value="owner">Owner</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userMemberId">Linked Member</label>
-                        <select id="userMemberId">
-                            <option value="">None</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="section-title">Permissions</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Capabilities</label>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="permEditMembers">
-                            <label for="permEditMembers" style="margin:0;">Can edit members</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="permViewStats">
-                            <label for="permViewStats" style="margin:0;">Can view stats</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="permManageMedia">
-                            <label for="permManageMedia" style="margin:0;">Can manage media</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="section-title">Password</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="userPassword">Password</label>
-                        <input id="userPassword" type="password" autocomplete="new-password">
-                        <small style="font-size:10px;color:var(--text-muted);" id="userPasswordHelp">
-                            For new users this is required. For existing users, fill only to change password.
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:16px;">
-                <button class="btn btn-primary" type="submit">Save User</button>
-                <button class="btn btn-ghost" type="button" onclick="startNewUser()">Clear</button>
-                <button class="btn btn-danger" type="button" onclick="deleteUser()" id="deleteUserBtn" style="margin-left:auto;display:none;">Delete</button>
-            </div>
-        </form>
-    </section>
-</div>
+        <div style="display:flex;gap:8px;margin-top:16px;align-items:center;">
+            <button class="btn btn-primary" type="submit">Create account</button>
+            <button class="btn btn-ghost" type="button" onclick="resetCreateAccount()">Clear</button>
+            <span class="dh-msg" id="createAccountMsg"></span>
+        </div>
+    </form>
+</section>
