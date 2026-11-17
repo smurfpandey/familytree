@@ -146,7 +146,7 @@ $icon = fn($sec, $s = 20) => '<svg viewBox="0 0 24 24" width="' . $s . '" height
   <section class="hero">
     <div class="eyebrow">The guide</div>
     <h1><?= !empty($missing) ? 'That page has moved' : 'Build your family tree, step by step' ?></h1>
-    <p class="lede">From the first person to a tree your whole family can explore: adding people, photos, privacy, emblems and looks, moving from other sites, and keeping the data wherever you like.</p>
+    <p class="lede">From the first person to a tree your whole family can explore: adding people, profile photos, privacy, emblems and looks, moving from other sites, and keeping the data wherever you like.</p>
     <label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <span class="skip">Search the guide</span><input type="search" id="q" placeholder="Search the guide, e.g. Ancestry, privacy, Google Sheet" autocomplete="off"></label>
   </section>

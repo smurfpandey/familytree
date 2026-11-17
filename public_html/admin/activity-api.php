@@ -28,27 +28,10 @@ $action   = trim($_GET['action'] ?? '');
 $q        = trim($_GET['q']      ?? '');
 
 try {
-    // Check if tenant_id column exists
-    $hasTenant = false;
-    try {
-        $cols = $pdo->query("DESCRIBE family_activity_logs")->fetchAll(PDO::FETCH_COLUMN);
-        $hasTenant = in_array('tenant_id', $cols);
-    } catch (Throwable $e) {
-        // table might not exist
-        echo json_encode(['rows' => [], 'total' => 0]);
-        exit;
-    }
-
-    $where = [];
-    $params = [];
-
-    if ($hasTenant) {
-        $where[] = 'l.tenant_id = ?';
-        $params[] = $tenantId;
-    } else {
-        $where[] = 'u.tenant_id = ?';
-        $params[] = $tenantId;
-    }
+    // Every tree's activity is scoped by tenant_id (it is part of the schema
+    // on both MySQL and SQLite; never use DESCRIBE here).
+    $where = ['l.tenant_id = ?'];
+    $params = [$tenantId];
 
     if ($action !== '') {
         $where[] = 'l.action = ?';
@@ -64,14 +47,7 @@ try {
 
     $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-    $joinSql = $hasTenant
-        ? "LEFT JOIN family_users u ON l.user_id = u.id"
-        : "LEFT JOIN family_users u ON l.user_id = u.id AND u.tenant_id = ?";
-    // For non-tenant join we already added the tenant param above; re-arrange params
-    if (!$hasTenant) {
-        // Move tenant param to join position — simpler: just use subquery
-        $joinSql = "LEFT JOIN family_users u ON l.user_id = u.id";
-    }
+    $joinSql = "LEFT JOIN family_users u ON l.user_id = u.id";
 
     // Count
     $cntSql = "SELECT COUNT(*) FROM family_activity_logs l $joinSql $whereSql";
@@ -79,8 +55,9 @@ try {
     $cntStmt->execute($params);
     $total = (int)$cntStmt->fetchColumn();
 
-    // Rows
-    $rowSql = "SELECT l.*, u.display_name, u.email
+    // Rows: IP address and user agent stay out of the API response.
+    $rowSql = "SELECT l.id, l.user_id, l.action, l.entity_type, l.entity_id,
+                      l.changes, l.created_at, u.display_name, u.email
                FROM family_activity_logs l
                $joinSql
                $whereSql

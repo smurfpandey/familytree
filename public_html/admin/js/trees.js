@@ -3,7 +3,7 @@
  *
  * An account can belong to several trees. The active tree lives in the PHP
  * session, so every switch does a full reload; no page keeps stale members,
- * users or media from the previous tree.
+ * users or data from the previous tree.
  */
 
 async function switchTree(tenantId) {

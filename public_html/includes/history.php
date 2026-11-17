@@ -28,7 +28,7 @@ class HistoryFamilyStore implements FamilyStore {
     public function __construct(private FamilyStore $inner, private PDO $pdo, private string $tid) {}
     public function inner(): FamilyStore { return $this->inner; }
 
-    private function log(string $action, ?int $memberId, ?array $before, ?array $after): void {
+    public function log(string $action, ?int $memberId, ?array $before, ?array $after): void {
         if ($action === 'update' && $before && $after && ft_hist_diff($before, $after) === []) return;   // nothing changed
         $a = ft_actor();
         try {
@@ -135,27 +135,34 @@ function ft_undo_batch(PDO $pdo, string $tid, FamilyStore $store, string $batch)
     if (!$rows) throw new RuntimeException('Nothing to undo there.');
     ft_batch(bin2hex(random_bytes(8)));                 // the revert is its own batch
     $n = 0;
-    foreach ($rows as $r) {
-        $mid = $r['member_id'] !== null ? (int)$r['member_id'] : null;
-        $before = $r['before_json'] ? json_decode($r['before_json'], true) : null;
-        $after  = $r['after_json'] ? json_decode($r['after_json'], true) : null;
-        switch ($r['action']) {
-            case 'create':
-                if ($mid && $store->member($mid)) { $store->deleteMember($mid); $n++; }
-                break;
-            case 'update':
-                if ($mid && $before && $after && $store->member($mid)) {
-                    $patch = [];
-                    foreach (ft_hist_diff($before, $after) as $k => [$old]) $patch[$k] = $old;
-                    if ($patch) { $store->patchMember($mid, $patch); $n++; }
-                }
-                break;
-            case 'delete':
-                if ($mid && $before && !$store->member($mid)) { ft_restore_member($store, $before); $n++; }
-                break;
+    $pdo->beginTransaction();
+    try {
+        foreach ($rows as $r) {
+            $mid = $r['member_id'] !== null ? (int)$r['member_id'] : null;
+            $before = $r['before_json'] ? json_decode($r['before_json'], true) : null;
+            $after  = $r['after_json'] ? json_decode($r['after_json'], true) : null;
+            switch ($r['action']) {
+                case 'create':
+                    if ($mid && $store->member($mid)) { $store->deleteMember($mid); $n++; }
+                    break;
+                case 'update':
+                    if ($mid && $before && $after && $store->member($mid)) {
+                        $patch = [];
+                        foreach (ft_hist_diff($before, $after) as $k => [$old]) $patch[$k] = $old;
+                        if ($patch) { $store->patchMember($mid, $patch); $n++; }
+                    }
+                    break;
+                case 'delete':
+                    if ($mid && $before && !$store->member($mid)) { ft_restore_member($store, $before); $n++; }
+                    break;
+            }
         }
+        $pdo->prepare("UPDATE member_history SET undone = 1 WHERE tenant_id = ? AND batch = ?")->execute([$tid, $batch]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
     }
-    $pdo->prepare("UPDATE member_history SET undone = 1 WHERE tenant_id = ? AND batch = ?")->execute([$tid, $batch]);
     return $n;
 }
 
@@ -167,8 +174,8 @@ function ft_restore_member(FamilyStore $store, array $row): int {
     else $base->insertMember(['id' => $id] + $row);
     // drop any cached copy, and record the restore so it shows in history (and can be undone)
     for ($s = $store; $s instanceof HistoryFamilyStore || $s instanceof CachedFamilyStore; $s = $s->inner()) {
-        if ($s instanceof CachedFamilyStore) (new ReflectionMethod($s, 'bust'))->invoke($s);
-        if ($s instanceof HistoryFamilyStore) (new ReflectionMethod($s, 'log'))->invoke($s, 'create', $id, null, $base->member($id));
+        if ($s instanceof CachedFamilyStore) $s->bust();
+        if ($s instanceof HistoryFamilyStore) $s->log('create', $id, null, $base->member($id));
     }
     return $id;
 }

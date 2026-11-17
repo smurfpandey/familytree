@@ -90,16 +90,16 @@ if ($visibility === 'private' && !$isMember) {
 $treeName    = htmlspecialchars($tenant['name'] ?? $tenant['display_name'] ?? 'Family Tree', ENT_QUOTES);
 $treeSlugJs  = htmlspecialchars($tenant['slug'] ?? '', ENT_QUOTES);
 
-// Sub-view: tree (default) | events | map | memories | relation  (via /tree/{slug}/{view})
-$viewNames = ['events' => 'Events', 'map' => 'World Map', 'memories' => 'Memory Book', 'relation' => 'How are we related?'];
+// Sub-view: tree (default) | events | map | relation  (via /tree/{slug}/{view})
+$viewNames = ['events' => 'Events', 'map' => 'World Map', 'relation' => 'How are we related?'];
 $view      = $_GET['view'] ?? '';
 if (!isset($viewNames[$view])) $view = 'custom';
 $viewLabel = $view === 'custom' ? 'Family Tree' : $viewNames[$view];
 
 $pageTitle   = $treeName . ' — ' . $viewLabel;
 $ogDesc      = $view === 'custom'
-    ? 'Explore the ' . $treeName . ' family tree — view generations, photos, and bios.'
-    : $viewLabel . ' of the ' . $treeName . ' family — ' . ($view === 'events' ? 'birthdays, anniversaries and remembrance days.' : ($view === 'map' ? 'where every member was born and lives today.' : ($view === 'relation' ? 'find how any two people are related.' : 'photos, videos and voice notes.')));
+    ? 'Explore the ' . $treeName . ' family tree — generations, dates and places.'
+    : $viewLabel . ' of the ' . $treeName . ' family — ' . ($view === 'events' ? 'birthdays, anniversaries and remembrance days.' : ($view === 'map' ? 'where every member was born and lives today.' : 'find how any two people are related.'));
 
 // Noindex for unlisted trees
 if ($visibility === 'unlisted') {

@@ -255,14 +255,14 @@ function ft_gedcom_read(string $raw, int $maxPeople = 20000): array {
     foreach ($members as &$m) $m['pids'] = array_values(array_unique($m['pids']));
     unset($m);
     $stats['places'] = count($places);
-    if ($stats['photos'] === 0) $warnings[] = 'Photos are not carried in GEDCOM files unless they are online links; add pictures in Photos after importing.';
+    if ($stats['photos'] === 0) $warnings[] = 'Photos are not carried in GEDCOM files unless they are online links; add a profile photo on the Members page after importing.';
     $orphans = count(array_filter($members, fn($m) => !$m['fid'] && !$m['mid'] && !$m['pids']));
     if ($orphans > 0 && $orphans < count($members)) $warnings[] = "$orphans people have no recorded parent or partner in the file and will stand on their own.";
     $stats['warnings'] = $warnings;
     return ['members' => array_values($members), 'media' => $media, 'stats' => $stats];
 }
 
-/** FamilyTree's own JSON: {members, media} (familytree/1, a full backup) or a plain list of members (the Members page export) */
+/** FamilyTree's own JSON: {members, media} (familytree/1, a full export) or a plain list of members (the Members page export) */
 function ft_json_read(string $raw): array {
     $d = json_decode(ft_gedcom_utf8($raw), true);
     if (!is_array($d)) throw new RuntimeException('This JSON file could not be read.');

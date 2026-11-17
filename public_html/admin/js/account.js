@@ -1,14 +1,5 @@
 /* admin/js/account.js — Profile & password change */
 
-function loadAccount() {
-    // Profile fields come from the PHP session; the trees for the delete sections are fetched
-    loadDeletePlan();
-    csrfFetch('account-api.php?digest=1').then(r => r.json()).then(d => { const c = document.getElementById('digestOn'); if (c) c.checked = !!d.digest; }).catch(() => {});
-}
-function saveDigest(on) {
-    csrfFetch('account-api.php', { method: 'POST', body: JSON.stringify({ action: 'digest', on }) }).then(r => r.json())
-        .then(d => { if (typeof showToast === 'function') showToast(d.error || (on ? 'Weekly email on' : 'Weekly email off'), d.error ? 'error' : 'success'); });
-}
 
 function saveProfile() {
     var name  = (document.getElementById('accDisplayName') || {}).value || '';
@@ -94,8 +85,17 @@ function changePassword() {
 }
 
 function confirmLogoutAll() {
-    if (!confirm('This will end all active sessions and log you out. Continue?')) return;
-    window.location.href = '?logout=1';
+    if (!confirm('This will end your session and log you out. Continue?')) return;
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '';
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = getCsrfToken();
+    const logout = document.createElement('input');
+    logout.type = 'hidden'; logout.name = 'logout'; logout.value = '1';
+    form.append(csrf, logout);
+    document.body.appendChild(form);
+    form.submit();
 }
 
 /* ── Alert helpers ─────────────────────────────────────────────── */

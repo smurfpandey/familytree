@@ -219,3 +219,40 @@ function ft_can_edit_tree(array $membership): bool {
 function ft_can_manage_tree(array $membership): bool {
     return ($membership['role'] ?? 'viewer') === 'owner';
 }
+
+/** The signed-in account's membership in the tree the session is on, or null. */
+function ft_admin_membership(PDO $pdo): ?array {
+    $uid = (int)($_SESSION['admin_user']['id'] ?? 0);
+    $tid = (string)($_SESSION['tenant_id'] ?? '');
+    if ($uid <= 0 || $tid === '') return null;
+    return ft_user_membership($pdo, $uid, $tid);
+}
+
+/**
+ * Stop the request unless the signed-in account holds one of $roles in the
+ * tree its session is on. Returns that membership.
+ */
+function ft_require_tree_role(PDO $pdo, array $roles = ['owner']): array {
+    $m = ft_admin_membership($pdo);
+    if (!$m || !in_array((string)($m['role'] ?? ''), $roles, true)) {
+        http_response_code(403);
+        if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'You do not have permission to do that in this tree.']);
+        exit;
+    }
+    return $m;
+}
+
+/**
+ * Point tenants.owner_user_id at an owner who is still a member. Owners are
+ * still allowed to be several; this column only names the main one.
+ */
+function ft_sync_tree_owner(PDO $pdo, string $tenantId): void {
+    $st = $pdo->prepare("SELECT user_id FROM tenant_users
+                         WHERE tenant_id = ? AND role = 'owner'
+                         ORDER BY created_at, id LIMIT 1");
+    $st->execute([$tenantId]);
+    $uid = $st->fetchColumn();
+    $pdo->prepare('UPDATE tenants SET owner_user_id = ? WHERE id = ?')
+       ->execute([$uid !== false ? (int)$uid : null, $tenantId]);
+}

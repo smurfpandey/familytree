@@ -125,7 +125,7 @@ ALTER TABLE `family_media`
   ADD KEY `idx_uploaded_by` (`uploaded_by_user_id`),
   ADD KEY `idx_fm_tenant` (`tenant_id`);
 ALTER TABLE `family_media_tags`
-  ADD PRIMARY KEY (`media_id`,`member_id`),
+  ADD PRIMARY KEY (`tenant_id`,`media_id`,`member_id`),
   ADD KEY `fk_media_tags_member` (`member_id`),
   ADD KEY `idx_fmt_tenant` (`tenant_id`);
 ALTER TABLE `family_tree_data`
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS `tenant_users` (
   COMMENT='Who can use the tree: owner, editors, viewers';
 
 -- from features-migration.sql
--- Events / Map / Memories feature migration (2026-09-15)
+-- Events / Map feature migration (2026-09-15)
 -- Run once against the production DB.
 
 -- 1. Media type: image | video | audio (existing rows default to image)
@@ -211,8 +211,6 @@ CREATE TABLE IF NOT EXISTS `member_history` (
   KEY `idx_hist_batch` (`batch`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2026-10-29: weekly email of birthdays, anniversaries and remembrance days (on unless turned off)
-ALTER TABLE `family_users` ADD COLUMN IF NOT EXISTS `digest` tinyint(1) NOT NULL DEFAULT 1;
 
 -- 2026-10-31: events the family adds by hand (festivals, pujas, reunions, a wedding), shown beside birthdays
 CREATE TABLE IF NOT EXISTS `family_events` (

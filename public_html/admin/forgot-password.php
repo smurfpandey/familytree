@@ -37,20 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$error) {
         // ── Look up the user (don't reveal whether email exists) ──────────
-        $stmt = $pdo->prepare("SELECT id, display_name, email FROM family_users WHERE email = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, display_name, email FROM family_users WHERE LOWER(email) = ? LIMIT 1");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            // Generate reset token (expires in 1 hour)
+            // Generate reset token (expires in 1 hour). Only its hash is stored,
+            // so a leaked database row cannot be used to reset a password.
             $resetToken = bin2hex(random_bytes(32));
+            $tokenHash  = hash('sha256', $resetToken);
             $expires    = date('Y-m-d H:i:s', time() + 3600);
 
             $pdo->prepare("
                 UPDATE family_users
                 SET password_reset_token = ?, password_reset_expires_at = ?
                 WHERE id = ?
-            ")->execute([$resetToken, $expires, $user['id']]);
+            ")->execute([$tokenHash, $expires, $user['id']]);
 
             sendPasswordResetEmail($user['email'], $user['display_name'], $resetToken);
         }
@@ -62,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $appName = getenv('MAIL_FROM_NAME') ?: 'FamilyTree';
 $authHeadline = 'Welcome back to your family.';
-$authLede = 'Pick up where you left off: new photos, birthdays this week, and the relatives still waiting to be added.';
+$authLede = 'Pick up where you left off: birthdays this week and the relatives still waiting to be added.';
 ?>
 <!DOCTYPE html>
 <html lang="en">

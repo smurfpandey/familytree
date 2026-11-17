@@ -23,16 +23,31 @@ try {
     $tenant = $slug !== '' ? getPublicTenantBySlug($pdo, $slug) : loadTenant($pdo, getPublicTenantId());
     if (!$tenant) { http_response_code(404); echo json_encode(['error' => 'Tree not found']); exit; }
     $tenantId = $tenant['id'];
+    $audience = ft_tree_audience($pdo, $tenantId);
+    enforceTreeVisibility($tenant['visibility'], $audience !== 'public');
 
-    $isOwner = !empty($_SESSION['admin_logged_in'])
-            && !empty($_SESSION['tenant_id']) && $_SESSION['tenant_id'] === $tenantId;
-    enforceTreeVisibility($tenant['visibility'], $isOwner);
+    // Only geocode places the audience is allowed to see. In particular, a
+    // private current_location must never be sent to an outside geocoder.
+    $privacy = loadPrivacySettings($pdo, $tenantId);
+    $fields = [];
+    foreach (['birth_location', 'current_location', 'death_location'] as $k) {
+        $vis = $privacy[$k] ?? 'members';
+        if ($audience === 'owner') $fields[] = $k;
+        elseif ($audience === 'members' && $vis !== 'private') $fields[] = $k;
+        elseif ($audience === 'public' && $vis === 'public') $fields[] = $k;
+    }
 
-    // Distinct places this tree references (from its data home)
     require_once __DIR__ . '/includes/store.php';
     $places = [];
-    foreach (ft_store($pdo, $tenant)->members() as $m)
-        foreach (['birth_location', 'current_location', 'death_location'] as $k) { $v = trim((string)($m[$k] ?? '')); if ($v !== '') $places[$v] = true; }
+    foreach (ft_store($pdo, $tenant)->members() as $m) {
+        if ($audience !== 'owner' && !empty($m['is_private'])) continue;
+        $livingProtected = $audience === 'public' && !empty($m['is_alive']) && empty($m['privacy_override']);
+        foreach ($fields as $k) {
+            if ($livingProtected && in_array($k, LIVING_PERSON_PROTECTED_FIELDS, true)) continue;
+            $v = trim((string)($m[$k] ?? ''));
+            if ($v !== '') $places[$v] = true;
+        }
+    }
     $places = array_keys($places);
     if (!$places) { echo json_encode(['places' => new stdClass, 'pending' => 0]); exit; }
 

@@ -26,7 +26,7 @@ $check = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><pa
   </svg>
   <ul class="auth-points">
     <li><?= $check ?>One link the whole family can open, no app needed</li>
-    <li><?= $check ?>Tree, timeline, map, memory book and events</li>
+    <li><?= $check ?>Tree, timeline, map and events</li>
     <li><?= $check ?>Free and open source; export your data any time</li>
   </ul>
 </aside>

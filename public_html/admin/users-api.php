@@ -149,23 +149,35 @@ function saveAssignment(PDO $pdo, int $userId, string $tenantId, string $role, ?
         throw new InvalidArgumentException('That linked person is not in this tree.');
     }
 
-    $existing = $pdo->prepare("SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ? LIMIT 1");
-    $existing->execute([$tenantId, $userId]);
-    $oldRole = $existing->fetchColumn();
-
-    if ($userId === $myId && $oldRole === 'owner' && $role !== 'owner' && ft_tree_owner_count($pdo, $tenantId) <= 1) {
-        throw new InvalidArgumentException('This is the tree’s last owner. Make someone else an owner first.');
-    }
-
     $permJson = $permissions ? json_encode($permissions) : null;
-    if ($oldRole === false) {
-        $pdo->prepare("INSERT INTO tenant_users (tenant_id, user_id, role, permissions, member_id)
-                       VALUES (?, ?, ?, ?, ?)")
-            ->execute([$tenantId, $userId, $role, $permJson, $memberId]);
-    } else {
-        $pdo->prepare("UPDATE tenant_users SET role = ?, permissions = ?, member_id = ?
-                       WHERE tenant_id = ? AND user_id = ?")
-            ->execute([$role, $permJson, $memberId, $tenantId, $userId]);
+    $pdo->beginTransaction();
+    try {
+        // Read the current role inside the transaction: two managers demoting
+        // the last two owners at the same time must not both pass the check.
+        $existing = $pdo->prepare("SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ? LIMIT 1");
+        $existing->execute([$tenantId, $userId]);
+        $oldRole = $existing->fetchColumn();
+
+        if ($oldRole === 'owner' && $role !== 'owner' && ft_tree_owner_count($pdo, $tenantId) <= 1) {
+            throw new InvalidArgumentException('This is the tree’s last owner. Make someone else an owner first.');
+        }
+
+        if ($oldRole === false) {
+            $pdo->prepare("INSERT INTO tenant_users (tenant_id, user_id, role, permissions, member_id)
+                           VALUES (?, ?, ?, ?, ?)")
+                ->execute([$tenantId, $userId, $role, $permJson, $memberId]);
+        } else {
+            $pdo->prepare("UPDATE tenant_users SET role = ?, permissions = ?, member_id = ?
+                           WHERE tenant_id = ? AND user_id = ?")
+                ->execute([$role, $permJson, $memberId, $tenantId, $userId]);
+        }
+        // Role changes can leave tenants.owner_user_id pointing at someone who
+        // is no longer an owner of this tree.
+        ft_sync_tree_owner($pdo, $tenantId);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
     }
 
     // Keep this session in step when the manager changes their own access in
@@ -242,7 +254,7 @@ if ($method === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { http_response_code(422); echo json_encode(['error' => 'A valid email is required.']); exit; }
         if (strlen($password) < 8) { http_response_code(422); echo json_encode(['error' => 'Password must be at least 8 characters.']); exit; }
 
-        $chk = $pdo->prepare('SELECT 1 FROM family_users WHERE email = ? LIMIT 1');
+        $chk = $pdo->prepare('SELECT 1 FROM family_users WHERE LOWER(email) = ? LIMIT 1');
         $chk->execute([$email]);
         if ($chk->fetchColumn()) {
             http_response_code(409);

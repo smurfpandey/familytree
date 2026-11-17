@@ -22,13 +22,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $loginError = 'Invalid form session. Please refresh and try again.';
     } else {
         checkRateLimit('admin_login', 10, 900);
-        $email    = trim($_POST['username'] ?? '');   // login field called "username" but holds email
+        $email    = strtolower(trim($_POST['username'] ?? ''));   // login field called "username" but holds email
         $password = $_POST['password'] ?? '';
 
     if ($email === '' || $password === '') {
         $loginError = 'Email and password are required';
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM family_users WHERE email = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM family_users WHERE LOWER(email) = ? LIMIT 1");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -70,6 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 ];
                 ft_apply_tree_session($membership);
 
+                // A new login gets a new session id, so a pre-login id cannot
+                // be reused afterwards.
+                session_regenerate_id(true);
+                $_SESSION['created_at'] = time();
+
                 $redirect = $adminDir . '/' . (!empty($_GET['welcome']) ? '?welcome=1' : '');
                 header('Location: ' . $redirect);
                 exit;
@@ -79,8 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     }
 }
 
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['logout'])) {
+    $tok = $_POST['csrf_token'] ?? '';
+    if (!empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $tok)) {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $p['path'], $p['domain'], (bool)$p['secure'], (bool)$p['httponly']);
+        }
+        session_destroy();
+    }
+    header('Location: ' . $adminDir . '/');
+    exit;
+}
+
 if (isset($_GET['logout'])) {
-    session_destroy();
+    // Old links must not end a session: point them at the login page, where
+    // the Log Out button posts a CSRF-protected form.
     header('Location: ' . $adminDir . '/');
     exit;
 }
@@ -108,8 +129,8 @@ if (!empty($_SESSION['admin_user']['id'])) {
     catch (Throwable $e) { $instanceName = 'FamilyTree'; }
     $isInstanceAdmin = ft_can_manage_instance($pdo, (int)$_SESSION['admin_user']['id']);
 }
-$adminPages = ['dashboard', 'members', 'photos', 'tidy', 'settings', 'activity', 'account'];
-if ($isInstanceAdmin) $adminPages = array_merge(['dashboard', 'users', 'trees', 'instance', 'members', 'photos', 'tidy', 'activity', 'settings', 'account']);
+$adminPages = ['dashboard', 'members', 'tidy', 'settings', 'activity', 'account'];
+if ($isInstanceAdmin) $adminPages = array_merge(['dashboard', 'users', 'trees', 'instance', 'members', 'tidy', 'activity', 'settings', 'account']);
 
 // User data for JS
 $adminUserJson = '';
@@ -168,7 +189,7 @@ $liveTreeUrl = $curTenantSlug ? ('/tree/' . urlencode($curTenantSlug)) : '/';
 ═══════════════════════════════════════════════════════════ -->
 <?php if (!defined('FT_APP')) define('FT_APP', 1);
       $authHeadline = 'Welcome back to your family.';
-      $authLede = 'Pick up where you left off: new photos, birthdays this week, and the relatives still waiting to be added.';
+      $authLede = 'Pick up where you left off: birthdays this week and the relatives still waiting to be added.';
       $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g></svg>'; ?>
 <div class="auth-shell">
   <?php require __DIR__ . '/../includes/auth-side.php'; ?>
@@ -321,17 +342,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                 Members
             </button>
 
-            <button class="sb-item" id="navPhotos" onclick="showPage('photos')">
-                <span class="sb-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/>
-                        <circle cx="9" cy="9" r="2"/>
-                        <path d="M21 15l-5-5L5 21"/>
-                    </svg>
-                </span>
-                Photos
-            </button>
-
             <button class="sb-item" id="navTidy" onclick="showPage('tidy')">
                 <span class="sb-icon">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -405,10 +415,13 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                     Profile
                 </button>
-                <a class="sb-action-btn sb-logout" href="?logout=1" title="Log Out">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    Log Out
-                </a>
+                <form method="post" action="" style="display:contents;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
+                    <button class="sb-action-btn sb-logout" type="submit" name="logout" value="1" title="Log Out">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Log Out
+                    </button>
+                </form>
             </div>
         </div>
     </aside>
@@ -489,15 +502,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-top">
-                            <div class="stat-icon blue">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-value" id="statMedia"><span class="sk" aria-hidden="true"></span></div>
-                        <div class="stat-label">Photos &amp; Media</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-top">
                             <div class="stat-icon orange">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             </div>
@@ -564,11 +568,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
             </div>
             <?php endif; ?>
 
-            <!-- ── PHOTOS PAGE ────────────────────────────────────── -->
-            <div class="admin-page" id="pagePhotos">
-                <?php require __DIR__ . '/photos.php'; ?>
-            </div>
-
             <!-- ── TIDY UP PAGE: duplicates, bin, history ─────────── -->
             <div class="admin-page" id="pageTidy">
                 <?php require __DIR__ . '/tidy.php'; ?>
@@ -598,7 +597,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
                                 <option value="member_update">Member updated</option>
                                 <option value="member_delete">Member deleted</option>
                                 <option value="user_add">User added</option>
-                                <option value="media_upload">Media upload</option>
                             </select>
                         </div>
                     </div>
@@ -652,7 +650,6 @@ document.getElementById('loginForm').addEventListener('submit', function () {
 <script src="js/trees.js?v=<?= FT_ASSET_VERSION ?>"></script>
 <script src="js/members.js?v=<?= FT_ASSET_VERSION ?>"></script>
 <script src="js/users.js?v=<?= FT_ASSET_VERSION ?>"></script>
-<script src="js/media.js?v=<?= FT_ASSET_VERSION ?>"></script>
 <script src="js/settings.js?v=<?= FT_ASSET_VERSION ?>"></script>
 <script src="js/instance.js?v=<?= FT_ASSET_VERSION ?>"></script>
 <script src="js/datahome.js?v=<?= FT_ASSET_VERSION ?>"></script>
@@ -722,7 +719,6 @@ var ADMIN_TITLES = {
     trees:     'Trees',
     instance:  'Instance Settings',
     members:   'Members',
-    photos:    'Photos & Media',
     tidy:      'Tidy up',
     settings:  'Tree Settings',
     activity:  'Activity Log',
@@ -782,7 +778,6 @@ function showPage(page, opts) {
                 if (typeof fetchMembers === 'function') fetchMembers();
                 if (typeof toggleDeathFields === 'function') toggleDeathFields();
                 if (typeof toggleMarriageUI === 'function') toggleMarriageUI();
-                if (typeof updateWikiCharCount === 'function') updateWikiCharCount();
                 if (typeof setFormHeader === 'function') setFormHeader(null);
                 break;
             case 'users':
@@ -793,9 +788,6 @@ function showPage(page, opts) {
                 break;
             case 'instance':
                 if (typeof loadInstanceSettings === 'function') loadInstanceSettings();
-                break;
-            case 'photos':
-                if (typeof fetchMedia === 'function' && mediaItems.length === 0) fetchMedia();
                 break;
             case 'settings':
                 if (typeof loadPrivacySettings === 'function') loadPrivacySettings();
@@ -808,9 +800,6 @@ function showPage(page, opts) {
                 break;
             case 'activity':
                 if (typeof loadActivity === 'function') loadActivity();
-                break;
-            case 'account':
-                if (typeof loadAccount === 'function') loadAccount();
                 break;
         }
     } else if (page === 'tidy' && member !== _tidyFocus) {
@@ -827,7 +816,7 @@ function openSelfProfile() { showPage('account'); }
 
 // ── Legacy showTab() shim for any JS still calling it ─────
 function showTab(tab) {
-    var map = { members:'members', users:'users', photos:'photos', settings:'settings' };
+    var map = { members:'members', users:'users', settings:'settings' };
     showPage(map[tab] || tab);
 }
 

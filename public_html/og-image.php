@@ -1,6 +1,6 @@
 <?php
 /**
- * og-image.php — 1200×630 share card for a tree (WhatsApp / social previews).
+ * og-image.php — 1200×630 share card for a tree (share previews).
  * GET ?tree={slug}   Cached on disk per tree; regenerated when older than a day.
  */
 define('FT_APP', 1);
@@ -58,7 +58,7 @@ if (!is_file($cacheFile) || filemtime($cacheFile) < time() - 86400) {
         $y = 290;
         foreach ($lines as $ln) { imagettftext($im, $size, 0, 90, $y, $cream, $serif, $ln); $y += $size + 24; }
         imagettftext($im, 24, 0, 90, $y + 30, $muted, $sans,
-            ($count ? $count . ' family members · ' : '') . 'photos, stories, events and a memory book');
+            ($count ? $count . ' family members · ' : '') . 'generations, dates and places');
         imagettftext($im, 20, 0, 90, 560, $gold, $sans, (getenv('APP_DOMAIN') ?: ($_SERVER['HTTP_HOST'] ?? 'familytree')) . '/tree/' . $slug);
     } else {
         imagestring($im, 5, 90, 120, 'FamilyTree', $gold);

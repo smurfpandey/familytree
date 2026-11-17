@@ -1,7 +1,7 @@
 /**
  * assets/print.js - the printable poster (/tree/{slug}/poster) and family book (/tree/{slug}/book).
  *
- * Data comes only from the public APIs (api-family.php, api-media.php), so whatever
+ * Data comes only from the public APIs (api-family.php), so whatever
  * privacy the tree applies elsewhere applies here too.
  *
  * Poster: our own tidy layout (couple units, contour packing) drawn as one SVG in
@@ -735,14 +735,12 @@
   // ═════════════════════════════════════════════════════════════════════════
   //  FAMILY BOOK
   // ═════════════════════════════════════════════════════════════════════════
-  async function book(members, ixAll, media) {
+  async function book(members, ixAll) {
     const pal = window.ftTreePalette();
     const r = document.documentElement.style;
     [['--bk-accent', pal.accent], ['--bk-text', pal.text], ['--bk-muted', pal.muted], ['--bk-line', pal.stroke], ['--bk-soft', pal.bg], ['--bk-av', pal.avMale], ['--bk-av-f', pal.avFemale]].forEach(([k, v]) => r.setProperty(k, v));
     setPage(`@page { size: A4; margin: 16mm 16mm 18mm; @bottom-center { content: counter(page); font: 9pt 'Plus Jakarta Sans', sans-serif; color: #888; } }
       @page :first { margin: 0; @bottom-center { content: none; } }`);
-    const photosOf = new Map();
-    (media || []).forEach(m => { if (m.type !== 'image') return; (m.members || []).forEach(t => { if (!photosOf.has(t.id)) photosOf.set(t.id, []); photosOf.get(t.id).push(m); }); });
     const emblem = await (async () => { const e = SET.emblem || {}; if (!e.kind || e.kind === 'none') return ''; const s = await emblemSvg(0, 0, 100, pal.accent); return s ? `<svg class="bk-emblem" viewBox="0 0 100 100" aria-hidden="true">${s}</svg>` : ''; })();
     const today = niceDate(new Date().toISOString().slice(0, 10));
     docShell('Family book', 'Every person on their own entry, by generation. Prints on A4.', 'Book', hidePanel(members));
@@ -777,7 +775,6 @@
           ix.partners(p).length && list(ix.partners(p)) && ['Partner' + (ix.partners(p).length > 1 ? 's' : ''), list(ix.partners(p))],
           kids.length && list(kids) && [kids.length > 1 ? 'Children' : 'Child', list(kids)],
         ].filter(Boolean);
-        const pics = (photosOf.get(p.id) || []).filter(m => m.url !== p.img).slice(0, 6);
         const yrs = lifeYears(p);
         return `<article class="bk-person" id="p${p.id}">
           <header class="bk-phead">
@@ -787,8 +784,6 @@
               ${yrs ? `<p class="bk-years">${esc(yrs)}</p>` : ''}</div>
           </header>
           ${rows.length ? `<dl class="bk-facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
-          ${p.wiki ? `<p class="bk-bio">${esc(p.wiki)}</p>` : ''}
-          ${pics.length ? `<div class="bk-photos">${pics.map(m => `<figure><img src="${esc(m.url)}" alt="${esc(m.title || '')}">${m.title ? `<figcaption>${esc(m.title)}</figcaption>` : ''}</figure>`).join('')}</div>` : ''}
         </article>`;
       };
       const genSpan = ps => { const y = ps.map(p => year(p.birth_date)).filter(Boolean); return y.length ? `born ${Math.min(...y)}${Math.max(...y) !== Math.min(...y) ? '–' + Math.max(...y) : ''}` : ''; };
@@ -1046,15 +1041,14 @@
     try {
       const kind = window.FT_PRINT_KIND;
       const q = encodeURIComponent(SLUG);
-      const [members, media, , extra] = await Promise.all([
+      const [members, , extra] = await Promise.all([
         getJSON('/api-family.php?tree=' + q),
-        kind === 'book' ? getJSON('/api-media.php?tree=' + q).catch(() => []) : Promise.resolve([]),
         kind === 'poster' ? loadFonts() : Promise.resolve(),
         kind === 'timeline' && EVENTS_API ? getJSON(EVENTS_API + q).then(r => (Array.isArray(r) ? r : r.events || []).map(e => ({ ...e, members: e.members || e.people || [] }))).catch(() => []) : Promise.resolve([]),
       ]);
       if (!Array.isArray(members) || !members.length) { root.innerHTML = '<p class="pr-loading">This tree has no one in it yet.</p>'; return; }
       const ix = index(members);
-      if (kind === 'book') await book(members, ix, media);
+      if (kind === 'book') await book(members, ix);
       else if (kind === 'timeline') await timeline(members, ix, extra);
       else if (kind === 'map') await placeMap(members, ix);
       else await poster(members, ix);

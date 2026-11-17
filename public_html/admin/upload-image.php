@@ -9,6 +9,8 @@ if (empty($_SESSION['admin_logged_in'])) {
     exit;
 }
 
+ft_require_tree_role($pdo, ['owner', 'editor']);
+
 header('Content-Type: application/json');
 
 // CSRF: csrfFetch sends the token as X-CSRF-Token header;
@@ -51,7 +53,7 @@ try {
 $ext = $allowed[$info['mime']];
 $filename = 'img_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
 
-$targetDir = __DIR__ . '/uploads';
+$targetDir = rtrim(ft_uploads_dir(), '/\\');
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0755, true);
 }

@@ -4,7 +4,7 @@
  *
  * POST multipart: file (.ged, .json, or a .zip holding one; at most 20 MB), mode = preview | replace | add
  *   preview  what the file holds, nothing is saved
- *   replace  the file becomes the tree (people and photos of the tree are replaced)
+ *   replace  the file becomes the tree (people of the tree are replaced)
  *   add      the file's people join the tree, beside the people already there
  * Owner only. Works with every data home: it goes through the tree's store.
  */
@@ -63,8 +63,7 @@ try {
         $map = $store->importAll($data['members'], $data['media']);
         ft_events_restore($pdo, $tenantId, $data['family_events'] ?? [], $map, true);
         // the old people are gone: accounts that pointed at one of them point at nobody now
-        $pdo->prepare("UPDATE family_users SET member_id = NULL WHERE tenant_id = ?")->execute([$tenantId]);
-        try { $pdo->prepare("UPDATE tenant_users SET member_id = NULL WHERE tenant_id = ?")->execute([$tenantId]); } catch (Throwable $e) {}
+        $pdo->prepare("UPDATE tenant_users SET member_id = NULL WHERE tenant_id = ?")->execute([$tenantId]);
     } else {
         // add: the file's ids move past the tree's, then everything is written back together
         $shift = $existing ? max(array_column($existing, 'id')) : 0;
@@ -83,7 +82,11 @@ try {
     logActivityWithTenant($pdo, 'tree_import', 'tree', null, ['mode' => $mode, 'people' => count($data['members']), 'format' => $isJson ? 'json' : 'gedcom'], $tenantId);
     @unlink(ft_cache_dir() . '/featured.json');
     echo json_encode(['ok' => true, 'mode' => $mode, 'imported' => count($data['members']), 'total' => $store->countMembers(), 'stats' => $data['stats']]);
-} catch (Throwable $e) {
+} catch (RuntimeException|InvalidArgumentException $e) {
     http_response_code(400);
     echo json_encode(['error' => $e->getMessage()]);
+} catch (Throwable $e) {
+    error_log('import-api: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'The import could not be completed. Nothing was changed.']);
 }

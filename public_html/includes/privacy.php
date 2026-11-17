@@ -12,6 +12,17 @@
  */
 if (!defined('FT_APP')) { http_response_code(403); exit; }
 
+require_once __DIR__ . '/trees.php';
+
+/** Who is asking for this tree: 'public', 'members', or 'owner' (editors included). */
+function ft_tree_audience(PDO $pdo, string $tenantId): string {
+    $uid = (int)($_SESSION['admin_user']['id'] ?? 0);
+    if ($uid <= 0) return 'public';
+    $m = ft_user_membership($pdo, $uid, $tenantId);
+    if (!$m) return 'public';
+    return ft_can_edit_tree($m) ? 'owner' : 'members';
+}
+
 // ──────────────────────────────────────────────────────────────
 // Field definitions with their defaults
 // Visibility levels: 'public' | 'members' | 'private'
@@ -22,15 +33,12 @@ const PRIVACY_FIELD_DEFAULTS = [
     'death_date'       => 'public',    // death date – generally public
     'death_location'   => 'public',    // death place – generally public
     'current_location' => 'members',   // home/current location
-    'social_media'     => 'members',   // instagram + facebook URLs
-    'photos'           => 'members',   // photos array + img field
-    'bio'              => 'public',    // wiki/bio text
     'anniversary_date' => 'members',   // marriage anniversary
 ];
 
 // Fields that are ALWAYS hidden for living people (P3.3) unless privacy_override = 1
 const LIVING_PERSON_PROTECTED_FIELDS = [
-    'birth_date', 'birth_location', 'current_location', 'social_media',
+    'birth_date', 'birth_location', 'current_location',
 ];
 
 /**
@@ -123,24 +131,19 @@ function enforceTreeVisibility(string $visibility, bool $isAdmin = false): void 
 function redactPrivateMember(array $member): array {
     return [
         'id'             => $member['id'],
-        'fid'            => $member['fid'],
-        'mid'            => $member['mid'],
+        'fid'            => $member['fid'] ?? null,
+        'mid'            => $member['mid'] ?? null,
         'pids'           => $member['pids'] ?? [],
         'gender'         => $member['gender'] ?? '',
         'name'           => 'Private Member',
         'nickname'       => '',
         'img'            => '',
-        'photos'         => [],
         'birth_date'     => '',
         'birth_location' => '',
         'death_date'     => '',
         'death_location' => '',
         'current_location' => '',
-        'insta_url'      => '',
-        'fb_url'         => '',
         'anniversary_date' => '',
-        'wiki'           => '',
-        'wiki_preview'   => '',
         'is_alive'       => (int)($member['is_alive'] ?? 1),
         'is_private'     => 1,
         'extra'          => [],
@@ -157,12 +160,20 @@ function redactPrivateMember(array $member): array {
  *     force LIVING_PERSON_PROTECTED_FIELDS to hidden regardless of settings
  *  3. Per-field privacy: if visibility = 'members' or 'private' → strip field
  *
- * @param array  $member    Full member row (with photos[] already attached)
+ * @param array  $member    Full member row
  * @param array  $settings  Output of loadPrivacySettings()
- * @return array            Filtered member safe for public output
+ * @param string $audience  'public' | 'members' | 'owner' (see ft_tree_audience)
+ * @return array            Filtered member safe for the audience
  */
-function applyPublicPrivacy(array $member, array $settings): array {
-    // P3.4 private member redaction
+function applyPublicPrivacy(array $member, array $settings, string $audience = 'public'): array {
+    // Owners and editors see the tree as it is in the admin area.
+    if ($audience === 'owner') {
+        unset($member['privacy_override'], $member['tenant_id']);
+        $member['is_private'] = !empty($member['is_private']) ? 1 : 0;
+        return $member;
+    }
+
+    // P3.4 private member redaction (owners handled above)
     if (!empty($member['is_private'])) {
         return redactPrivateMember($member);
     }
@@ -170,14 +181,20 @@ function applyPublicPrivacy(array $member, array $settings): array {
     $isLiving    = !empty($member['is_alive']);
     $hasOverride = !empty($member['privacy_override']);
 
-    // Helper: should this field be visible publicly?
-    $visible = function(string $fieldKey) use ($settings, $isLiving, $hasOverride): bool {
-        // Living-person auto-protection (P3.3)
-        if ($isLiving && !$hasOverride && in_array($fieldKey, LIVING_PERSON_PROTECTED_FIELDS, true)) {
-            return false;
-        }
+    // Helper: should this field be visible to this audience?
+    $visible = function(string $fieldKey) use ($settings, $isLiving, $hasOverride, $audience): bool {
         $vis = $settings[$fieldKey] ?? 'members';
-        return $vis === 'public';
+
+        if ($audience === 'public') {
+            // Living-person auto-protection (P3.3) applies to guests only.
+            if ($isLiving && !$hasOverride && in_array($fieldKey, LIVING_PERSON_PROTECTED_FIELDS, true)) {
+                return false;
+            }
+            return $vis === 'public';
+        }
+
+        // Signed-in members see everything except fields marked private.
+        return $vis !== 'private';
     };
 
     // Apply field-by-field visibility
@@ -188,28 +205,12 @@ function applyPublicPrivacy(array $member, array $settings): array {
     if (!$visible('current_location')) { $member['current_location'] = ''; }
     if (!$visible('anniversary_date')) { $member['anniversary_date'] = ''; }
 
-    if (!$visible('social_media')) {
-        $member['insta_url'] = '';
-        $member['fb_url']    = '';
-    }
-
-    if (!$visible('photos')) {
-        $member['img']    = '';
-        $member['photos'] = [];
-    }
-
-    if (!$visible('bio')) {
-        $member['wiki']         = '';
-        $member['wiki_preview'] = '';
-    }
-
     // extra details follow the field they belong with
     $x = is_array($member['extra'] ?? null) ? $member['extra'] : [];
     if (!$visible('birth_date'))       unset($x['birth_approx'], $x['birth_tithi']);
     if (!$visible('death_date'))       unset($x['death_approx'], $x['death_tithi']);
     if (!$visible('birth_location'))   unset($x['native_place']);
     if (!$visible('anniversary_date')) unset($x['partners']);
-    if (!$visible('bio'))              unset($x['sources']);
     $member['extra'] = $x;
 
     // Strip internal/admin-only fields from public output

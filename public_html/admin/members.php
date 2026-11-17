@@ -31,7 +31,7 @@
                                 onclick="window.location.href='gedcom-export.php'">Export GEDCOM</button>
                         <button type="button"
                                 style="width:100%;text-align:left;padding:8px 12px;background:none;border:none;color:var(--text-primary);font-size:12.5px;cursor:pointer;"
-                                onclick="window.location.href='backup-export.php'">Full backup (JSON)</button>
+                                onclick="window.location.href='export-everything.php'">Export everything (JSON)</button>
                     </div>
                 </div>
                 <button class="btn btn-ghost" type="button" onclick="openImport()">Import</button>
@@ -50,7 +50,6 @@
                         <th data-col="father">Father</th>
                         <th data-col="mother">Mother</th>
                         <th data-col="partner">Partner</th>
-                        <th data-col="wiki">Wiki</th>
                     </tr>
                 </thead>
                 <tbody data-sk="table" data-n="8"></tbody>
@@ -73,7 +72,7 @@
             <button type="button" class="btn btn-ghost" style="font-size:12px;" onclick="startNewRelated('spouse')">+ Spouse</button>
             <button type="button" class="btn btn-ghost" style="font-size:12px;" onclick="startNewRelated('child')">+ Child</button>
         </div>
-        <p class="form-note">Click table row to edit. Wiki field supports up to 750 characters.</p>
+        <p class="form-note">Click a table row to edit that person.</p>
 
         <form id="memberForm" onsubmit="saveMember(event)">
             <input type="hidden" id="memberId">
@@ -103,6 +102,22 @@
                     <div class="form-group">
                         <label for="COL10">Current Location</label>
                         <input id="COL10">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="imgFile">Profile photo</label>
+                        <input id="imgFile" type="file" accept="image/*">
+                        <button type="button"
+                                class="btn btn-ghost"
+                                style="margin-top:4px;padding-inline:10px;font-size:11px;"
+                                onclick="clearImageField()">
+                            Remove photo
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label for="img">Photo URL</label>
+                        <input id="img">
                     </div>
                 </div>
             </div>
@@ -188,55 +203,6 @@
                 </div>
             </div>
 
-            <!-- MEDIA -->
-            <div class="form-section">
-                <div class="section-title">Media</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="imgFile">Upload Image</label>
-                        <input id="imgFile" type="file" accept="image/*">
-                        <button type="button"
-                                class="btn btn-ghost"
-                                style="margin-top:4px;padding-inline:10px;font-size:11px;"
-                                onclick="clearImageField()">
-                            Remove image
-                        </button>
-                    </div>
-                    <div class="form-group">
-                        <label for="img">Image URL</label>
-                        <input id="img">
-                    </div>
-                </div>
-            </div>
-
-            <!-- CONTACTS -->
-            <div class="form-section">
-                <div class="section-title">Social Links</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="COL11">Instagram</label>
-                        <input id="COL11">
-                    </div>
-                    <div class="form-group">
-                        <label for="COL12">Facebook</label>
-                        <input id="COL12">
-                    </div>
-                </div>
-            </div>
-
-            <!-- WIKI -->
-            <div class="form-section">
-                <div class="section-title">
-                    Wiki Biography
-                    <span style="color:var(--text-muted);font-size:11px;font-weight:500;"> 750 chars max</span>
-                </div>
-                <div class="form-group full">
-                    <label for="wiki">Personal story, achievements, memories</label>
-                    <textarea id="wiki" placeholder="Write a biography or notable information about this person..."></textarea>
-                    <div class="wiki-char-count" id="wikiCharCount">0/750</div>
-                </div>
-            </div>
-
             <div style="display:flex;gap:8px;margin-top:16px;">
                 <button class="btn btn-primary" type="submit">Save</button>
                 <button class="btn btn-ghost" type="button" onclick="startNew()">Clear</button>
@@ -246,14 +212,14 @@
     </section>
 </div>
 
-<!-- Import from another builder: GEDCOM or a FamilyTree JSON backup -->
+<!-- Import from another builder: GEDCOM or a FamilyTree JSON export -->
 <dialog id="importDialog" class="imp-dialog" aria-labelledby="impTitle">
   <form method="dialog" class="imp-head">
     <h3 id="impTitle">Import a family tree</h3>
     <button class="imp-x" value="close" aria-label="Close">&times;</button>
   </form>
   <div class="imp-body">
-    <p class="imp-lede">Bring your tree from Ancestry, MyHeritage, FamilySearch, Geni, Gramps, webtrees, Family Echo or any builder that exports <b>GEDCOM</b> (.ged, or the .zip some sites give you), or a FamilyTree backup (.json). <a href="/guide/importing" target="_blank" rel="noopener">How to export from each site</a></p>
+    <p class="imp-lede">Bring your tree from Ancestry, MyHeritage, FamilySearch, Geni, Gramps, webtrees, Family Echo or any builder that exports <b>GEDCOM</b> (.ged, or the .zip some sites give you), or a FamilyTree JSON export (.json). <a href="/guide/importing" target="_blank" rel="noopener">How to export from each site</a></p>
     <label class="imp-drop" id="impDrop">
       <input type="file" id="impFile" accept=".ged,.gedcom,.json,.zip,text/plain,application/json,application/zip" onchange="importPreview()">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -263,7 +229,7 @@
     <fieldset id="impModes" class="imp-modes" hidden>
       <legend>How should it join this tree?</legend>
       <label><input type="radio" name="impMode" value="add" checked> <span><b>Add alongside</b> the people already here</span></label>
-      <label><input type="radio" name="impMode" value="replace"> <span><b>Replace</b> everyone in this tree with the file (photos in the tree are removed too)</span></label>
+      <label><input type="radio" name="impMode" value="replace"> <span><b>Replace</b> everyone in this tree with the file</span></label>
     </fieldset>
     <p class="imp-msg" id="impMsg" role="status" aria-live="polite"></p>
   </div>

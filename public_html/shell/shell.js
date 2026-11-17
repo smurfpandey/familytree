@@ -389,8 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = window.customTreeView?.familyData || [];
           const matches = data.filter(m =>
             (m.name || '').toLowerCase().includes(q) ||
-            (m.nickname || '').toLowerCase().includes(q) ||
-            (m.wiki || '').toLowerCase().includes(q)
+            (m.nickname || '').toLowerCase().includes(q)
           );
           renderSuggestions(matches);
           window.customTreeView?.searchAndHighlight(q);
@@ -486,7 +485,7 @@ function openShareDialog() {
         <h4>Embed on your website</h4>
         <p class="share-note">Paste this into any page: a blog, a family website, Notion, WordPress, Google Sites. Only public and unlisted trees can be embedded.</p>
         <div class="share-opts">
-          <label>View <select id="embView"><option value="">Tree</option><option value="events">Timeline</option><option value="map">Map</option><option value="memories">Memories</option><option value="relation">How are we related</option></select></label>
+          <label>View <select id="embView"><option value="">Tree</option><option value="events">Timeline</option><option value="map">Map</option><option value="relation">How are we related</option></select></label>
           <label>Theme <select id="embTheme"><option value="">Visitor's choice</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
           <label>Look <select id="embLook"><option value="">The family's look</option>${Object.entries(window.FT_TREE_THEMES || {}).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('')}</select></label>
           <label>Height <select id="embHeight"><option>480</option><option selected>600</option><option>760</option></select></label>
@@ -522,7 +521,7 @@ function openShareDialog() {
 }
 
 /**
- * Sub-view tabs: Tree · Events · Map · Memories  (only for /tree/{slug} pages)
+ * Sub-view tabs: Tree · Events · Map  (only for /tree/{slug} pages)
  */
 function generateViewTabs(view, slug) {
   const base = (window.FT_EMBED ? '/embed/' : '/tree/') + slug;
@@ -530,7 +529,6 @@ function generateViewTabs(view, slug) {
     { key: 'custom',   href: base,               icon: ICONS.tree,     label: 'Tree' },
     { key: 'events',   href: base + '/events',   icon: ICONS.calendar, label: 'Events' },
     { key: 'map',      href: base + '/map',      icon: ICONS.globe,    label: 'Map' },
-    { key: 'memories', href: base + '/memories', icon: ICONS.book,     label: 'Memories' },
   ];
   return `<nav class="view-tabs" aria-label="Tree sections">${tabs.map(t =>
     `<a href="${t.href}" class="view-tab${t.key === view ? ' active' : ''}"${t.key === view ? ' aria-current="page"' : ''}>${t.icon}<span>${t.label}</span></a>`
@@ -540,7 +538,7 @@ function generateViewTabs(view, slug) {
 /**
  * Controls bar
  */
-/** The search box on the events, map and memories views. Typing fires a 'ft:viewsearch' event
+/** The search box on the events and map views. Typing fires a 'ft:viewsearch' event
  *  on window with { q } (debounced); each view filters itself. Esc clears it. */
 function viewSearchBox(placeholder) {
   return `<div class="controls-section controls-section-search">
@@ -598,25 +596,6 @@ function generateControlsBar(view) {
         ${viewSearchBox('Search people or places...')}
       </div>`;
   }
-  if (view === 'memories') {
-    return `
-      <div class="controls-bar">
-        <div class="controls-section">
-          <div class="controls-label">Show</div>
-          <div class="seg" id="memTypeSeg">
-            <button type="button" class="seg-btn active" data-type="all">All</button>
-            <button type="button" class="seg-btn" data-type="image">${ICONS.image} Photos</button>
-            <button type="button" class="seg-btn" data-type="video">${ICONS.video} Videos</button>
-            <button type="button" class="seg-btn" data-type="audio">${ICONS.mic} Voice notes</button>
-          </div>
-        </div>
-        <div class="controls-section controls-section-search">
-          <select id="memPersonFilter" class="ctrl-select" aria-label="Filter by person"><option value="">Everyone</option></select>
-        </div>
-        ${viewSearchBox('Search captions or people...')}
-      </div>`;
-  }
-
   if (view === 'custom') {
     return `
       <div class="controls-bar">
@@ -771,10 +750,6 @@ function generateMemberPanel() {
           <span class="mp-value" id="mpSiblings">—</span>
         </div>
         <div class="member-panel-row section-break">
-          <span class="mp-label">About</span>
-          <span class="mp-value" id="mpWiki">—</span>
-        </div>
-        <div class="member-panel-row section-break">
           <span class="mp-label">Gender</span>
           <span class="mp-value" id="mpGender">—</span>
         </div>
@@ -786,20 +761,11 @@ function generateMemberPanel() {
           <span class="mp-label">Lives in</span>
           <span class="mp-value" id="mpLocation">—</span>
         </div>
-        <div class="member-panel-row">
-          <span class="mp-label">Contacts</span>
-          <span class="mp-value" id="mpContacts">—</span>
-        </div>
 
         <div class="mp-actions-row no-export">
           <button type="button" class="btn btn-ghost btn-sm" id="mpFindRelBtn" title="Find how this person is related to someone else">${ICONS.link} Find relation</button>
           <button type="button" class="btn btn-ghost btn-sm" id="mpCopyLinkBtn" title="Copy a direct link to this person">${ICONS.copy} Copy link</button>
           ${(typeof window !== 'undefined' && window.FT_CAN_EDIT) ? `<a class="btn btn-ghost btn-sm" id="mpHistoryLink" href="/admin/#tidy" title="Every change to this person, with Undo">History</a>` : ''}
-        </div>
-
-        <div class="member-panel-gallery-row">
-          <div class="mp-label">Gallery</div>
-          <div class="mp-gallery" id="mpGallery"></div>
         </div>
       </div>
     </aside>
@@ -1055,7 +1021,7 @@ function findRelationship() {
     return;
   }
 
-  // works on every view: tree, timeline, map, memories
+  // works on every view: tree, timeline, map
   const allMembers = (typeof ftFamily === 'function' ? ftFamily() : null) || window.customTreeView?.familyData || window.d3TreeView?.familyData || [];
 
   resultDiv.innerHTML = '<div class="search-loading">Calculating relationship...</div>';

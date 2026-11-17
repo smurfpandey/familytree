@@ -11,6 +11,7 @@
 $root = dirname(__DIR__) . '/public_html';
 $tmp = sys_get_temp_dir() . '/ft-multitree-test-' . getmypid();
 @mkdir("$tmp/uploads", 0777, true);
+@unlink("$tmp/ft.sqlite"); // a recycled PID must not reuse an older run's database
 putenv("FT_STORAGE_DIR=$tmp");
 putenv("FT_UPLOADS_DIR=$tmp/uploads");
 require $root . '/includes/db.php';
@@ -29,21 +30,22 @@ $account = function (string $email, string $name, string $tid) use ($q, $pdo): i
        [$email, password_hash('pw', PASSWORD_DEFAULT), $name, $tid]);
     return (int)$pdo->lastInsertId();
 };
-$tree = function (string $tid, string $slug, ?int $owner) use ($q): array {
-    $q("INSERT INTO tenants (id, slug, display_name, owner_user_id, visibility) VALUES (?, ?, ?, ?, 'private')",
-       [$tid, $slug, ucfirst($slug), $owner]);
-    return ['id' => $tid, 'slug' => $slug, 'display_name' => ucfirst($slug), 'visibility' => 'private'];
+$tree = function (string $tid, string $slug, ?int $owner, string $createdAt) use ($q): array {
+    $q("INSERT INTO tenants (id, slug, display_name, owner_user_id, visibility, created_at) VALUES (?, ?, ?, ?, 'private', ?)",
+       [$tid, $slug, ucfirst($slug), $owner, $createdAt]);
+    return ['id' => $tid, 'slug' => $slug, 'display_name' => ucfirst($slug), 'visibility' => 'private', 'created_at' => $createdAt];
 };
 $member = fn(array $t, string $name) => ft_store($pdo, $t)->insertMember(['name' => $name]);
 
-$sharma = $tree('T-sharma', 'sharma', null);
-$iyer   = $tree('T-iyer', 'iyer', null);
+// Fixed up to the second: tree and membership order must not depend on how fast the test runs.
+$sharma = $tree('T-sharma', 'sharma', null, '2026-01-02 00:00:00');
+$iyer   = $tree('T-iyer', 'iyer', null, '2026-01-01 00:00:00');
 $asha   = $account('asha@example.test', 'Asha', 'T-sharma');
 $bina   = $account('bina@example.test', 'Bina', 'T-iyer');
 
 // Both accounts are co-owners of both trees.
 foreach ([[$sharma, $asha], [$sharma, $bina], [$iyer, $asha], [$iyer, $bina]] as [$t, $u])
-    $q("INSERT INTO tenant_users (tenant_id, user_id, role) VALUES (?, ?, 'owner')", [$t['id'], $u]);
+    $q("INSERT INTO tenant_users (tenant_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)", [$t['id'], $u, $t['created_at']]);
 $q("UPDATE tenants SET owner_user_id = ? WHERE id = ?", [$asha, 'T-sharma']);
 $q("UPDATE tenants SET owner_user_id = ? WHERE id = ?", [$bina, 'T-iyer']);
 

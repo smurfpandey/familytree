@@ -1,4 +1,4 @@
-// shell/member-card.js - Refactored member card with relative navigation, age/wiki, children, gallery, and export
+// shell/member-card.js - Refactored member card with relative navigation, age, children, and export
 
 function parseDateSafe(value) {
   if (!value) return null;
@@ -193,21 +193,6 @@ function openMemberPanel(member, relatives = {}) {
   const loc = member.current_location || member.location;
   setRowText('mpLocation', clean(loc));
   
-  // Contacts
-  const contactsPieces = [];
-  if (member.insta_url) {
-    contactsPieces.push(
-      `<a href="${member.insta_url}" target="_blank" rel="noopener" class="mp-link">Instagram</a>`
-    );
-  }
-  if (member.fb_url) {
-    contactsPieces.push(
-      `<a href="${member.fb_url}" target="_blank" rel="noopener" class="mp-link">Facebook</a>`
-    );
-  }
-  const contactsHtml = contactsPieces.join(' · ');
-  setRowHTML('mpContacts', contactsHtml);
-
   // Anniversary
   const annRaw = member.anniversary_date;
   const annText = annRaw ? uiUtils.formatDate(annRaw) : '';
@@ -221,26 +206,7 @@ function openMemberPanel(member, relatives = {}) {
 
   const deathLoc = member.death_location || member.death_place;
   setRowText('mpDeathPlace', clean(deathLoc));
-  
-  // Wiki (rich HTML + expandable)
-  const wikiValue = member.wiki || member.wikipedia;
-  const wikiPreview = member.wiki_preview;
-  const wikiSpan = document.getElementById('mpWiki');
-  const wikiRow = wikiSpan && wikiSpan.closest('.member-panel-row');
-  
-  if (wikiSpan && wikiRow) {
-    if (!wikiValue && !wikiPreview) {
-      wikiRow.style.display = 'none';
-      wikiSpan.textContent = '—';
-    } else {
-      wikiRow.style.display = '';
-      const html = wikiValue || wikiPreview || '';
-      wikiSpan.innerHTML =
-        `<span class="mp-wiki-text">${html}</span>` +
-        (html.length > 260 ? '<button type="button" class="mp-wiki-more">Read more</button>' : '');
-    }
-  }
-  
+
   // Age & timeline
   const ageSpan = document.getElementById('mpStatus');
   const ageRow = ageSpan && ageSpan.closest('.member-panel-row');
@@ -272,27 +238,7 @@ function openMemberPanel(member, relatives = {}) {
     }
   }
 
-  // Gallery
-  const galleryEl = document.getElementById('mpGallery');
-  const galleryRow = galleryEl && galleryEl.closest('.member-panel-gallery-row');
-
-  if (galleryEl && galleryRow) {
-    const photos = Array.isArray(member.photos) ? member.photos : [];
-
-    if (!photos.length) {
-      galleryRow.style.display = 'none';
-      galleryEl.innerHTML = '';
-    } else {
-      galleryRow.style.display = '';
-      galleryEl.innerHTML = photos.map((p, idx) => `
-        <button class="mp-gallery-item" type="button" data-photo-index="${idx}">
-          <img src="${p.url}" alt="${uiUtils.displayValue(member.name)} photo ${idx + 1}">
-        </button>
-      `).join('');
-    }
-  }
-
-  // Remember current member id for gallery/export
+  // Remember current member id for export
   window.currentMemberId = member.id;
 
   if (window.ftExtraCard) window.ftExtraCard(member);
@@ -303,23 +249,15 @@ function openMemberPanel(member, relatives = {}) {
 }
 
 /* ── "See in" row: open this person in another view, highlighted ───────────── */
-const FT_VIEWS = [['custom', 'Tree', 'tree'], ['events', 'Timeline', 'calendar'], ['map', 'Map', 'globe'], ['memories', 'Memories', 'book']];
+const FT_VIEWS = [['custom', 'Tree', 'tree'], ['events', 'Timeline', 'calendar'], ['map', 'Map', 'globe']];
 
 function ftViewHref(view, id) {
   const base = (window.FT_EMBED ? '/embed/' : '/tree/') + encodeURIComponent(window.FT_TREE_SLUG || '');
   return base + (view && view !== 'custom' ? '/' + view : '') + '?focus=' + id;
 }
 function ftFamily() {
-  const v = window.customTreeView || window.eventsView || window.mapView || window.memoriesView || window.relationView;
+  const v = window.customTreeView || window.eventsView || window.mapView || window.relationView;
   return (v && v.familyData) || [];
-}
-// the memory book, fetched once per page (the Memories view already has it)
-let _ftMedia = null;
-function ftMediaList() {
-  if (window.memoriesView && Array.isArray(window.memoriesView.media) && window.memoriesView.media.length) return Promise.resolve(window.memoriesView.media);
-  if (!_ftMedia) _ftMedia = fetch('/api-media.php?tree=' + encodeURIComponent(window.FT_TREE_SLUG || ''))
-    .then(r => r.json()).then(a => Array.isArray(a) ? a : []).catch(() => []);
-  return _ftMedia;
 }
 // how much each view has on this person: dated events, places
 function ftMemberCounts(m) {
@@ -336,19 +274,13 @@ function ftRenderSeeIn(m) {
   // the first name, past titles like Smt., Shri, Late, Dr.
   const first = String(m.name || '').split(/\s+/).find(w => !/^(late|lt|shri|sri|smt|kumari|km|mr|mrs|ms|miss|dr|prof|sir|dame|lady|lord)\.?$/i.test(w)) || 'them';
   box.innerHTML = `<span class="mp-views-label">See ${uiUtils.displayValue(first)} in</span><div class="mp-views-row">` + FT_VIEWS.map(([k, label, icon]) => {
-    const n = k === 'custom' ? null : k === 'memories' ? '' : c[k];
-    const inner = `${ICONS[icon]}<span>${label}</span>${n !== null ? `<small data-count="${k}">${n === '' ? '<i class="sk sk-num" aria-hidden="true"></i>' : n}</small>` : ''}`;
+    const n = k === 'custom' ? null : c[k];
+    const inner = `${ICONS[icon]}<span>${label}</span>${n !== null ? `<small data-count="${k}">${n}</small>` : ''}`;
     const empty = n === 0 ? ' is-empty' : '';
     return k === here
       ? `<button type="button" class="mp-view is-here${empty}" data-focus-here="${m.id}" title="Highlight here">${inner}</button>`
       : `<a class="mp-view${empty}" href="${ftViewHref(k, m.id)}">${inner}</a>`;
   }).join('') + '</div>';
-  ftMediaList().then(list => {
-    if (window._mpCurrentMemberId !== m.id) return;
-    const n = list.filter(x => (x.members || []).some(p => p.id === m.id)).length;
-    const el = box.querySelector('[data-count="memories"]'); if (!el) return;
-    el.textContent = n; el.closest('.mp-view').classList.toggle('is-empty', n === 0);
-  });
 }
 // each view sets window.ftFocusMember; the tree's comes from here
 function ftFocusHere(id) {
@@ -425,7 +357,7 @@ function navigateToRelative(relativeId) {
       if (member) d3View.showMemberDetails(member);
     }
   } else {
-    // timeline, map and memories: just open the relative's card
+    // timeline, map and tree: just open the relative's card
     const member = ftFamily().find(m => m.id === relativeId);
     if (member) openMemberPanel(member, dataUtils.findRelatives(member, ftFamily()));
   }
@@ -494,35 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.customTreeView.openCreatorPopover(targetMember, type, {
         presetGender: presetGender
       });
-    }
-  });
-
-  // Wiki "Read more"
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mp-wiki-more');
-    if (!btn) return;
-
-    const span = btn.previousElementSibling; // .mp-wiki-text
-    if (!span) return;
-
-    span.classList.add('mp-wiki-expanded');
-    btn.remove();
-  });
-
-  // Gallery thumbnail clicks
-  document.addEventListener('click', (e) => {
-    const item = e.target.closest('.mp-gallery-item');
-    if (!item) return;
-
-    const memberId = window.currentMemberId;
-    const allMembers = ((window.customTreeView || window.eventsView || window.mapView || window.memoriesView || window.relationView || window.d3TreeView)?.familyData || []);
-    const member = allMembers.find(m => m.id === memberId);
-    if (!member || !Array.isArray(member.photos)) return;
-
-    const index = Number(item.dataset.photoIndex);
-    const photo = member.photos[index];
-    if (photo && photo.url) {
-      window.open(photo.url, '_blank', 'noopener');
     }
   });
 
@@ -736,7 +639,7 @@ document.addEventListener('click', (e) => {
  * Full Member Edit Modal (Build Mode)
  */
 function openMemberEditModal(memberId) {
-  const allNodes = (window.customTreeView || window.eventsView || window.mapView || window.memoriesView || window.relationView)?.familyData || [];
+  const allNodes = (window.customTreeView || window.eventsView || window.mapView || window.relationView)?.familyData || [];
   const member = allNodes.find(m => m.id === memberId);
   if (!member) return;
 
@@ -885,32 +788,6 @@ function openMemberEditModal(memberId) {
             </div>
           </div>
         </div>
-
-        <!-- Social Links -->
-        <div class="mem-edit-section">
-          <div class="mem-edit-section-title">Social Links</div>
-          <div class="mem-edit-row">
-            <div class="mem-edit-fg">
-              <label>Instagram URL</label>
-              <input type="url" id="memEditInsta" class="mem-edit-input" value="${clean(member.insta_url) || ''}" placeholder="https://instagram.com/...">
-            </div>
-            <div class="mem-edit-fg">
-              <label>Facebook URL</label>
-              <input type="url" id="memEditFb" class="mem-edit-input" value="${clean(member.fb_url) || ''}" placeholder="https://facebook.com/...">
-            </div>
-          </div>
-        </div>
-
-        <!-- Wiki Biography -->
-        <div class="mem-edit-section">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <div class="mem-edit-section-title" style="margin:0;">Biography / Notes</div>
-            <span id="memEditWikiCount" style="font-size:11px;color:var(--text-muted);">0 / 750</span>
-          </div>
-          <div class="mem-edit-fg">
-            <textarea id="memEditWiki" class="mem-edit-textarea" maxlength="750" placeholder="Biographical story, notable achievements, memories...">${member.wiki || ''}</textarea>
-          </div>
-        </div>
       </form>
       <div class="mem-edit-footer">
         <button type="button" class="btn btn-danger btn-sm" id="memEditDeleteBtn" style="background:transparent;border:1px solid rgba(239,68,68,0.5);color:#ef4444;cursor:pointer;">Delete Member</button>
@@ -1008,15 +885,6 @@ function openMemberEditModal(memberId) {
   }
 
   modal.querySelector('#memEditAddSpouseBtn').onclick = () => renderSpouseRow(null);
-
-  // Wiki char count
-  const wikiTa = modal.querySelector('#memEditWiki');
-  const wikiCount = modal.querySelector('#memEditWikiCount');
-  const updateWikiCount = () => {
-    wikiCount.textContent = `${wikiTa.value.length} / 750`;
-  };
-  wikiTa.oninput = updateWikiCount;
-  updateWikiCount();
 
   // Delete member handler
   modal.querySelector('#memEditDeleteBtn').onclick = async () => {
@@ -1126,12 +994,9 @@ function openMemberEditModal(memberId) {
         pids: isMarriedChecked ? uniqueSpouseIds : [],
         isalive: isAliveChecked ? 1 : 0,
         currentlocation: modal.querySelector('#memEditLocation').value.trim() || null,
-        instaurl: modal.querySelector('#memEditInsta').value.trim() || null,
-        fburl: modal.querySelector('#memEditFb').value.trim() || null,
         anniversarydate: isMarriedChecked ? (modal.querySelector('#memEditAnniversary').value || null) : null,
         deathdate: !isAliveChecked ? (modal.querySelector('#memEditDeathDate').value || null) : null,
-        deathlocation: !isAliveChecked ? (modal.querySelector('#memEditDeathLoc').value.trim() || null) : null,
-        wiki: wikiTa.value.trim().substring(0, 750) || null
+        deathlocation: !isAliveChecked ? (modal.querySelector('#memEditDeathLoc').value.trim() || null) : null
       };
       if (window.ftExtraCollect) {
         payload.extra = window.ftExtraCollect(modal, member);
@@ -1170,12 +1035,9 @@ function openMemberEditModal(memberId) {
       member.mid = payload.mid;
       member.is_alive = payload.isalive;
       member.current_location = payload.currentlocation;
-      member.insta_url = payload.instaurl;
-      member.fb_url = payload.fburl;
       member.anniversary_date = payload.anniversarydate;
       member.death_date = payload.deathdate;
       member.death_location = payload.deathlocation;
-      member.wiki = payload.wiki;
 
       // Reciprocal spouse sync in local memory
       const prevSpouseIds = Array.isArray(member.pids) ? [...member.pids] : [];

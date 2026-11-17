@@ -1,7 +1,7 @@
 {
   "name": "FamilyTree",
   "short_name": "FamilyTree",
-  "description": "Interactive family trees with photos, stories, events, a world map and a memory book.",
+  "description": "Interactive family trees with dates, places, events and a world map.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F7F4EC",

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `family_media_tags` (
   `tenant_id` TEXT NOT NULL,
   `media_id` INTEGER NOT NULL,
   `member_id` INTEGER NOT NULL,
-  PRIMARY KEY (`media_id`,`member_id`)
+  PRIMARY KEY (`tenant_id`,`media_id`,`member_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `family_tree_data` (
@@ -137,10 +137,6 @@ CREATE TABLE IF NOT EXISTS `tenant_users` (
   UNIQUE (`tenant_id`, `user_id`)
 );
 
-INSERT OR IGNORE INTO `tenant_users` (`tenant_id`, `user_id`, `role`, `permissions`, `member_id`)
-SELECT `tenant_id`, `id`, `role`, `permissions`, `member_id`
-FROM `family_users`;
-
 ALTER TABLE `family_media` ADD COLUMN `type` TEXT NOT NULL DEFAULT 'image';
 
 CREATE TABLE IF NOT EXISTS `geo_cache` (
@@ -165,7 +161,6 @@ CREATE TABLE IF NOT EXISTS `member_history` (
   `created_at` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE `family_users` ADD COLUMN `digest` INTEGER NOT NULL DEFAULT 1;
 
 CREATE TABLE IF NOT EXISTS `family_events` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,

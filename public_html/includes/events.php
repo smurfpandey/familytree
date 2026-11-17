@@ -25,6 +25,22 @@ function ft_event_shape(array $r): array {
 }
 
 /**
+ * Remove private people from the tag lists of events shown to non-owners.
+ * Structural event data stays; only the ids that name private people go.
+ */
+function ft_events_hide_private(array $events, array $privateIds): array {
+    if (!$privateIds) return $events;
+    $private = array_flip(array_map('intval', $privateIds));
+    foreach ($events as &$e) {
+        if (!empty($e['people'])) {
+            $e['people'] = array_values(array_filter($e['people'], fn($id) => !isset($private[(int)$id])));
+        }
+    }
+    unset($e);
+    return $events;
+}
+
+/**
  * checks one event from the form or a backup against the tree's member ids.
  * returns [row for the table, null] or [null, ['field' => ..., 'error' => plain message]]
  */

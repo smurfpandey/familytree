@@ -34,7 +34,7 @@ if (!ft_can_manage_instance($pdo, $userId)) {
 
 const INSTANCE_FIELD_LABELS = [
     'birth_date' => 'Date of Birth', 'birth_location' => 'Birth Location', 'death_date' => 'Death Date', 'death_location' => 'Death Location',
-    'current_location' => 'Current Location', 'social_media' => 'Social Media (Instagram / Facebook)', 'photos' => 'Photos', 'bio' => 'Biography / Wiki', 'anniversary_date' => 'Marriage Anniversary',
+    'current_location' => 'Current Location', 'anniversary_date' => 'Marriage Anniversary',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

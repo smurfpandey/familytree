@@ -110,6 +110,19 @@ function buildMemberLabel(name, nick, id) {
     return `${base}${np}${id ? ' [' + id + ']' : ''}`;
 }
 
+/* ── Values put into innerHTML ──────────────────────────────────── */
+function ftEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+/** Only http(s) URLs and same-origin paths may become src/href values. */
+function ftSafeUrl(value) {
+    const url = String(value ?? '').trim();
+    return /^(https?:\/\/|\/)/i.test(url) ? url : '';
+}
+
 /* ── Legacy shim: toggleUserMenu (now sidebar handles this) ─────── */
 function toggleUserMenu(event) {
     if (event) event.stopPropagation();

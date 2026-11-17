@@ -42,8 +42,6 @@ catch (Throwable $e) { http_response_code(503); echo json_encode(['error' => 'Th
 /** the shape the admin JS has always received (snake_case plus the old flat aliases) */
 function legacyShape(array $row): array {
     $row['currentlocation'] = $row['current_location'] ?? null;
-    $row['instaurl']        = $row['insta_url'] ?? null;
-    $row['fburl']           = $row['fb_url'] ?? null;
     $row['anniversarydate'] = $row['anniversary_date'] ?? null;
     $row['deathdate']       = $row['death_date'] ?? null;
     $row['deathlocation']   = $row['death_location'] ?? null;
@@ -70,12 +68,9 @@ try {
         'pids'             => ft_pids($input['pids'] ?? []),
         'is_alive'         => $input['isalive'] ?? ($input['is_alive'] ?? 1),
         'current_location' => $input['currentlocation'] ?? ($input['current_location'] ?? null),
-        'insta_url'        => $input['instaurl'] ?? ($input['insta_url'] ?? null),
-        'fb_url'           => $input['fburl'] ?? ($input['fb_url'] ?? null),
         'anniversary_date' => $input['anniversarydate'] ?? ($input['anniversary_date'] ?? null),
         'death_date'       => $input['deathdate'] ?? ($input['death_date'] ?? null),
         'death_location'   => $input['deathlocation'] ?? ($input['death_location'] ?? null),
-        'wiki'             => isset($input['wiki']) ? substr($input['wiki'], 0, 750) : null,
         'is_private'       => isset($input['is_private']) ? (int)(bool)$input['is_private'] : 0,
         'privacy_override' => isset($input['privacy_override']) ? (int)(bool)$input['privacy_override'] : 0,
     ];

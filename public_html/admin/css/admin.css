@@ -702,42 +702,6 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .event-days-left{font-size:11.5px;font-weight:600;color:var(--accent-ink);white-space:nowrap;}
 
 /* ════════════════════════════════════════════════════════════════
-   Photos Grid
-   ════════════════════════════════════════════════════════════════ */
-.photos-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;
-}
-.photo-thumb{
-  border-radius:var(--radius);overflow:hidden;
-  background:var(--bg-stripe);border:1px solid var(--border);
-  cursor:pointer;transition:box-shadow .15s,transform .15s;
-  position:relative;aspect-ratio:4/3;
-}
-.photo-thumb:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
-.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.photo-overlay{
-  position:absolute;inset:0;background:rgba(0,0,0,.5);
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  opacity:0;transition:opacity .15s;
-}
-.photo-thumb:hover .photo-overlay{opacity:1;}
-.photo-title{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:8px 10px 6px;
-  background:linear-gradient(transparent,rgba(0,0,0,.65));
-  font-size:11.5px;color:#fff;font-weight:500;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-
-/* ── Media Detail ─────────────────────────────────────────────── */
-.media-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;}
-@media(max-width:900px){.media-layout{grid-template-columns:1fr;}}
-.media-detail-img{
-  width:100%;max-height:340px;object-fit:contain;
-  background:var(--bg-stripe);display:block;border-radius:var(--radius);
-}
-
-/* ════════════════════════════════════════════════════════════════
    Alerts
    ════════════════════════════════════════════════════════════════ */
 .alert{
@@ -870,25 +834,6 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .w-full{width:100%;}
 .ml-auto{margin-left:auto;}
 
-/* Tag pills (media) */
-.tag-pill{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:3px 10px;border-radius:12px;
-  background:var(--accent-light);color:var(--accent-ink);
-  font-size:12px;font-weight:500;
-}
-.tag-pill .rm{
-  cursor:pointer;color:var(--accent-ink);opacity:.7;
-  border:none;background:none;font-size:14px;line-height:1;padding:0;
-}
-.tag-pill .rm:hover{opacity:1;}
-.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px;}
-
-/* Wiki char count */
-#wikiCount{font-size:11.5px;color:var(--text-muted);text-align:right;}
-#wikiCount.warn{color:var(--yellow);}
-#wikiCount.danger{color:var(--red);}
-
 /* Welcome banner */
 .welcome-banner{
   background:linear-gradient(135deg,var(--accent-light),var(--bg-card));
@@ -921,15 +866,13 @@ textarea.form-control{resize:vertical;min-height:80px;}
   .page-body{padding:16px;}
   .top-bar{padding:0 16px;}
   .sb-mobile-toggle{display:flex;}
-  .photos-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
   .stats-grid{grid-template-columns:repeat(2,1fr);}
   .members-grid{grid-template-columns:1fr;}
-  .media-layout{grid-template-columns:1fr;}
 }
 
 /* ════════════════════════════════════════════════════════════════
    COMPATIBILITY LAYER — maps old CSS classes to new design tokens
-   (keeps members.php, users.php, photos.php working without rewrite)
+   (keeps members.php and users.php working without rewrite)
    ════════════════════════════════════════════════════════════════ */
 
 /* Members page 2-column grid */
@@ -1077,7 +1020,6 @@ section.form-wrap[hidden]{display:none;}
 .checkbox-group input[type=checkbox]{
   width:16px;height:16px;accent-color:var(--accent);cursor:pointer;
 }
-.wiki-char-count,.char-count{font-size:11.5px;color:var(--text-muted);text-align:right;}
 
 /* Members table action column */
 td .btn-xs{padding:3px 8px;font-size:11px;}
@@ -1093,45 +1035,6 @@ section.users-wrap{
   padding:14px 18px;border-bottom:1px solid var(--border);
   background:var(--bg-stripe);flex-wrap:wrap;
 }
-
-/* Photos (media) page */
-#tabPhotosContent{}
-.media-toolbar{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  margin-bottom:16px;
-}
-#mediaGrid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-  gap:14px;
-}
-.media-item{
-  border-radius:var(--radius);overflow:hidden;
-  background:var(--bg-stripe);border:1px solid var(--border);
-  cursor:pointer;transition:box-shadow .15s,transform .15s;
-  position:relative;aspect-ratio:4/3;
-}
-.media-item:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
-.media-item img{width:100%;height:100%;object-fit:cover;display:block;}
-.media-item-title{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:6px 8px 4px;
-  background:linear-gradient(transparent,rgba(0,0,0,.6));
-  font-size:11px;color:#fff;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.media-item.selected{outline:3px solid var(--accent);}
-
-/* Media detail panel */
-.media-detail{
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:20px;
-}
-.media-detail img{
-  width:100%;max-height:280px;object-fit:contain;
-  border-radius:var(--radius);background:var(--bg-stripe);margin-bottom:14px;
-}
-#mediaEditPanel{padding-top:0;}
 
 /* Settings tab */
 #settingsTab,.settings-wrap{padding-top:0;}

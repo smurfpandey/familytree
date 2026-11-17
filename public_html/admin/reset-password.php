@@ -27,7 +27,7 @@ if (!$token) {
           AND password_reset_expires_at > NOW()
         LIMIT 1
     ");
-    $stmt->execute([$token]);
+    $stmt->execute([hash('sha256', $token)]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && !$error) {
 
 $appName = getenv('MAIL_FROM_NAME') ?: 'FamilyTree';
 $authHeadline = 'Welcome back to your family.';
-$authLede = 'Pick up where you left off: new photos, birthdays this week, and the relatives still waiting to be added.';
+$authLede = 'Pick up where you left off: birthdays this week and the relatives still waiting to be added.';
 $eye = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g></svg>';
 ?>
 <!DOCTYPE html>

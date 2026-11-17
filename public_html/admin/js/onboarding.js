@@ -274,7 +274,7 @@
             <div class="ob-emoji ob-emoji-big"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M12 15a7 7 0 0 0 7-7c0-2-1.5-3.5-3.5-3.5A6 6 0 0 0 4 8c0 3.87 3.58 7 8 7z"/></svg></div>
             <h2>Your tree is alive!</h2>
             <p>${count} family member${count > 1 ? 's' : ''} added. Keep growing it — add siblings,
-               children, photos and stories from the Members page.</p>
+               children and stories from the Members page.</p>
             <div class="ob-done-actions">
               <button type="button" class="btn btn-primary" id="obGoMembers">+ Add more members</button>
               <button type="button" class="btn btn-ghost" id="obClose">Go to dashboard</button>

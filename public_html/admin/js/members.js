@@ -85,27 +85,24 @@ function renderTable() {
         const statusBadge = m.is_alive
             ? '<span class="badge alive-badge">Alive</span>'
             : '<span class="badge dead-badge">Deceased</span>';
-        const wikiText = m.wiki || '';
-        const wikiPreview = wikiText.length > 30 ? wikiText.substring(0, 30) + '...' : wikiText;
-        const thumbUrl = m.img || '';
+        const thumbUrl = ftSafeUrl(m.img || '');
         const thumbHtml = thumbUrl
-            ? `<img src="${thumbUrl}" alt="" loading="lazy" style="width:26px;height:26px;border-radius:999px;object-fit:cover;background:var(--bg-stripe);border:1px solid var(--border);">`
+            ? `<img src="${ftEsc(thumbUrl)}" alt="" loading="lazy" style="width:26px;height:26px;border-radius:999px;object-fit:cover;background:var(--bg-stripe);border:1px solid var(--border);">`
             : `<div style="width:26px;height:26px;border-radius:999px;background:var(--bg-stripe);border:1px dashed var(--border-strong);"></div>`;
 
-        return `<tr data-id="${m.id}">
-            <td>${m.id}</td>
+        return `<tr data-id="${(Number(m.id) || 0)}">
+            <td>${(Number(m.id) || 0)}</td>
             <td>${thumbHtml}</td>
-            <td>${m.name || ''}</td>
-            <td>${m.nickname || ''}</td>
-            <td>${m.gender || ''}</td>
+            <td>${ftEsc(m.name)}</td>
+            <td>${ftEsc(m.nickname)}</td>
+            <td>${ftEsc(m.gender)}</td>
             <td>${statusBadge}</td>
-            <td>${father || ''}</td>
-            <td>${mother || ''}</td>
-            <td>${partner || ''}</td>
-            <td title="${(wikiText || '').replace(/"/g, '&quot;')}">${wikiPreview}</td>
+            <td>${ftEsc(father)}</td>
+            <td>${ftEsc(mother)}</td>
+            <td>${ftEsc(partner)}</td>
         </tr>`;
     }).join('') + (rows.length > tableLimit
-        ? `<tr class="table-more"><td colspan="10" style="text-align:center;"><button type="button" class="btn btn-ghost" data-more>Show ${Math.min(TABLE_PAGE, rows.length - tableLimit)} more · ${rows.length - tableLimit} not shown</button></td></tr>`
+        ? `<tr class="table-more"><td colspan="9" style="text-align:center;"><button type="button" class="btn btn-ghost" data-more>Show ${Math.min(TABLE_PAGE, rows.length - tableLimit)} more · ${rows.length - tableLimit} not shown</button></td></tr>`
         : '');
     tbody.onclick = (e) => {
         if (e.target.closest('[data-more]')) { tableLimit += TABLE_PAGE; renderTable(); return; }
@@ -265,12 +262,13 @@ function setFormHeader(m) {
 
     titleEl.innerHTML =
         `<span style="font-size:12px;font-weight:400;color:var(--text-muted);">Edit</span> ` +
-        `<span style="font-weight:600;">${displayName || 'member'}</span>`;
+        `<span style="font-weight:600;">${ftEsc(displayName) || 'member'}</span>`;
 
     subEl.textContent = 'ID: ' + m.id;
 
-    if (m.img) {
-        avatar.src = m.img;
+    const avatarUrl = ftSafeUrl(m.img);
+    if (avatarUrl) {
+        avatar.src = avatarUrl;
         avatar.style.display = 'inline-block';
     } else {
         avatar.style.display = 'none';
@@ -312,7 +310,7 @@ function startNew() {
     const delBtn = document.getElementById('deleteBtn');
     if (delBtn) delBtn.style.display = 'none';
 
-    ['wiki','COL10','COL11','COL12','COL13','COL14','COL15'].forEach(id => {
+    ['COL10','COL13','COL14','COL15'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -321,7 +319,6 @@ function startNew() {
     renderSpouses([]);
     toggleDeathFields();
     toggleMarriageUI();
-    updateWikiCharCount();
     setFormHeader(null);
 }
 
@@ -377,11 +374,8 @@ function fillForm(m) {
         mid: m.mid || '',
         COL13: m.anniversarydate || m.anniversary_date || '',
         COL10: m.currentlocation || m.current_location || '',
-        COL11: m.instaurl || m.insta_url || '',
-        COL12: m.fburl || m.fb_url || '',
         COL14: m.deathdate || m.death_date || '',
-        COL15: m.deathlocation || m.death_location || '',
-        wiki: m.wiki || ''
+        COL15: m.deathlocation || m.death_location || ''
     };
     Object.entries(map).forEach(([id, val]) => {
         const el = document.getElementById(id);
@@ -401,7 +395,6 @@ function fillForm(m) {
 
     toggleDeathFields();
     toggleMarriageUI();
-    updateWikiCharCount();
     setFormHeader(m);
 }
 
@@ -417,12 +410,6 @@ async function saveMember(e) {
     e.preventDefault();
 
     const id = document.getElementById('memberId')?.value || '';
-    const wikiEl = document.getElementById('wiki');
-    const wiki = wikiEl ? wikiEl.value.trim() : '';
-    if (wiki.length > 750) {
-        alert('Wiki biography must be 750 characters or less.');
-        return;
-    }
 
     const married = document.getElementById('ismarried')?.checked || false;
     const spouseSelects = Array.from(document.querySelectorAll('.partner-select'));
@@ -443,10 +430,7 @@ async function saveMember(e) {
         mid: document.getElementById('mid')?.value || null,
         pids: married ? uniqueSpouseIds : [],
         isalive: document.getElementById('isalive')?.checked ? 1 : 0,
-        wiki: wiki || null,
         currentlocation: (document.getElementById('COL10')?.value || '').trim() || null,
-        instaurl: (document.getElementById('COL11')?.value || '').trim() || null,
-        fburl: (document.getElementById('COL12')?.value || '').trim() || null,
         anniversarydate: married ? (anniversaryVal || null) : null,
         deathdate: document.getElementById('COL14')?.value || null,
         deathlocation: (document.getElementById('COL15')?.value || '').trim() || null
@@ -520,7 +504,7 @@ function exportCSV() {
     const rows = members;
     const headers = [
         'id','name','nickname','gender','birth_date','birth_location',
-        'current_location','insta_url','fb_url','anniversary_date',
+        'current_location','anniversary_date',
         'death_date','death_location','fid','mid','pids','is_alive'
     ];
     const csvRows = [];
@@ -566,15 +550,6 @@ document.addEventListener('click', e => {
     }
 });
 
-function updateWikiCharCount() {
-    const wiki = document.getElementById('wiki');
-    const countEl = document.getElementById('wikiCharCount');
-    if (!wiki || !countEl) return;
-    const len = wiki.value.length;
-    countEl.textContent = len + '/750';
-    countEl.style.color = len > 750 ? 'var(--red)' : 'var(--text-muted)';
-}
-
 function clearImageField() {
     const imgInput = document.getElementById('img');
     if (imgInput) imgInput.value = '';
@@ -593,14 +568,13 @@ function clearImageField() {
 document.getElementById('tableSearch')?.addEventListener('input', applyFilters);
 document.getElementById('isalive')?.addEventListener('change', toggleDeathFields);
 document.getElementById('ismarried')?.addEventListener('change', toggleMarriageUI);
-document.getElementById('wiki')?.addEventListener('input', updateWikiCharCount);
 
 /* Sorting for members table */
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#membersTable thead th').forEach(th => {
         th.addEventListener('click', () => {
             const col = th.getAttribute('data-col');
-            if (!col || col === 'photo' || col === 'status' || col === 'father' || col === 'mother' || col === 'partner' || col === 'wiki') {
+            if (!col || col === 'photo' || col === 'status' || col === 'father' || col === 'mother' || col === 'partner') {
                 return;
             }
             if (sortState.column === col) {

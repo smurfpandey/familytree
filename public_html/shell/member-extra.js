@@ -1,7 +1,7 @@
 /**
  * shell/member-extra.js - the details kept in a member's `extra` JSON (see ft_extra in includes/store.php):
  * name in Hindi or another script, native village, gotra, approximate dates, Hindu (tithi) dates,
- * adoptive / step parents, partnership dates and divorce, and sources.
+ * adoptive / step parents, partnership dates and divorce.
  *   ftExtraCard(member)              fills the member card
  *   ftExtraMount(modal, member, all) adds the sections to the edit window
  *   ftExtraCollect(modal, member)    reads them back as the extra object to save
@@ -102,13 +102,7 @@
       const t = partnerLine(x.partners[b.dataset.relId]);
       if (t && !(b.nextElementSibling && b.nextElementSibling.classList.contains('mp-partner'))) b.insertAdjacentHTML('afterend', ` <span class="mp-partner">${esc(t)}</span>`);
     });
-    // sources
-    const src = Array.isArray(x.sources) ? x.sources : [];
-    show('mpSources', 'Sources', 'mpWiki', src.length ? '<ol class="mp-sources">' + src.map(s => {
-      const what = { birth: 'Birth', death: 'Death', marriage: 'Marriage', name: 'Name', place: 'Place', parents: 'Parents', other: '' }[s.fact] || '';
-      const title = s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener nofollow">${esc(s.title || s.url)}</a>` : esc(s.title || '');
-      return `<li>${what ? `<b>${what}:</b> ` : ''}${title}${s.page ? `, ${esc(s.page)}` : ''}${s.note ? `<small>${esc(s.note)}</small>` : ''}</li>`;
-    }).join('') + '</ol>' : '');
+
   };
 
   /* ── the edit window ───────────────────────────────────────────────────── */
@@ -160,18 +154,6 @@
   function readPartner(r) {
     return { married: r.querySelector('.mx-married').value || null, end: r.querySelector('.mx-end').value || null, ended: r.querySelector('.mx-ended-d').value || null };
   }
-  function sourceRow(s) {
-    s = s || {};
-    const facts = [['birth', 'Birth'], ['death', 'Death'], ['marriage', 'Marriage'], ['name', 'Name'], ['place', 'Place'], ['parents', 'Parents'], ['other', 'Other']];
-    return `<div class="mx-source">
-      <select class="mem-edit-select mx-fact" aria-label="What it proves">${opts(facts, s.fact || 'birth')}</select>
-      <input type="text" class="mem-edit-input mx-title" placeholder="e.g. School leaving certificate" value="${esc(s.title)}" aria-label="Source">
-      <input type="url" class="mem-edit-input mx-url" placeholder="Link (optional)" value="${esc(s.url)}" aria-label="Link">
-      <input type="text" class="mem-edit-input mx-note" placeholder="Note or page (optional)" value="${esc(s.note || s.page)}" aria-label="Note">
-      <button type="button" class="btn btn-ghost btn-sm mx-del" aria-label="Remove this source">&times;</button>
-    </div>`;
-  }
-
   window.ftExtraMount = function (modal, member, all) {
     const x = (member.extra && typeof member.extra === 'object' && !Array.isArray(member.extra)) ? member.extra : {};
     const sections = modal.querySelectorAll('.mem-edit-section');
@@ -230,18 +212,6 @@
       box.addEventListener('change', e => { const r = e.target.closest('.mx-partner'); if (r && e.target.classList.contains('mx-end')) r.querySelector('.mx-ended').hidden = !e.target.value; });
       redraw();
     }
-    // sources, before the biography
-    const bio = modal.querySelector('#memEditWiki');
-    const bioSec = bio && bio.closest('.mem-edit-section');
-    if (bioSec) bioSec.insertAdjacentHTML('beforebegin', `<div class="mem-edit-section" id="mxSources">
-      <div class="mem-edit-section-title">Sources</div>
-      <small class="mx-hint">Where a fact comes from: a certificate, a family register, a gravestone, Grandma's memory.</small>
-      <div class="mx-source-list">${(x.sources || []).map(sourceRow).join('')}</div>
-      <button type="button" class="btn btn-ghost btn-sm" id="mxAddSource">+ Add a source</button>
-    </div>`);
-    const sl = modal.querySelector('.mx-source-list');
-    modal.querySelector('#mxAddSource')?.addEventListener('click', () => { sl.insertAdjacentHTML('beforeend', sourceRow()); sl.lastElementChild.querySelector('.mx-title').focus(); });
-    sl?.addEventListener('click', e => { if (e.target.closest('.mx-del')) e.target.closest('.mx-source').remove(); });
   };
 
   /** the anniversary the rest of the app uses: the wedding date of a partnership that hasn't ended */
@@ -269,8 +239,6 @@
     const partners = {};
     modal.querySelectorAll('.mx-partner').forEach(r => { const p = readPartner(r); if (p.married || p.end || p.ended) partners[r.dataset.partner] = p; });
     x.partners = partners;
-    x.sources = [...modal.querySelectorAll('.mx-source')].map(r => ({ fact: r.querySelector('.mx-fact').value, title: r.querySelector('.mx-title').value.trim(), url: r.querySelector('.mx-url').value.trim(), note: r.querySelector('.mx-note').value.trim() }))
-      .filter(s => s.title || s.url || s.note);
     return x;
   };
 })();

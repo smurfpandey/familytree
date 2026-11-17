@@ -9,14 +9,11 @@ const FIELD_LABELS = {
     death_date:       'Death Date',
     death_location:   'Death Location',
     current_location: 'Current Location',
-    social_media:     'Social Media (Instagram / Facebook)',
-    photos:           'Photos',
-    bio:              'Biography / Wiki',
     anniversary_date: 'Marriage Anniversary',
 };
 
 // Fields auto-protected for living people (shown with a lock badge)
-const LIVING_PROTECTED = ['birth_date', 'birth_location', 'current_location', 'social_media'];
+const LIVING_PROTECTED = ['birth_date', 'birth_location', 'current_location'];
 
 let _privacySettings = {}; // loaded state
 

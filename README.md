@@ -8,23 +8,23 @@ file in your Drive.
 Install it on your own server in five minutes, or run it on your computer as a
 desktop app. One account can hold several separate trees: keep your side of the
 family and your spouse's side under one login, with the same person a co-owner of
-both. Trees never share members, photos, events, settings or data homes, and you
+both. Trees never share members, events, settings or data homes, and you
 switch between them from the sidebar.
 
 ## What it does
 
-- A family tree viewer that works on a phone: zoom, pan, tap a person, see photos, dates, places and stories.
-- Events (birthdays, anniversaries, remembrance days and your own family events), a world map of where everyone was born and lives, a memory book of photos, videos and voice notes.
+- A family tree viewer that works on a phone: zoom, pan, tap a person, see photos, dates and places.
+- Events (birthdays, anniversaries, remembrance days and your own family events) and a world map of where everyone was born and lives.
 - Relationship finder ("how is X related to Y"), member cards you can export as PNG or PDF, GEDCOM export.
 - A family emblem: pick one of 18 built-in marks and a colour, or upload your own crest. It shows on the tree, on every card, on the share preview and as the tab icon.
 - Six tree looks (Heritage, Banyan, Royal, Minimal, Parchment, Marigold), each in light and dark.
-- Import from Ancestry, MyHeritage, FamilySearch, Geni, Gramps and others through GEDCOM (a `.zip` works too), or from a FamilyTree backup. Export GEDCOM, CSV or a full JSON backup.
+- Import from Ancestry, MyHeritage, FamilySearch, Geni, Gramps and others through GEDCOM (a `.zip` works too), or from a FamilyTree JSON export. Export GEDCOM, CSV or the whole tree as JSON.
 - Logins for the family: the owner adds relatives as editors (can change the tree) or viewers (can see a private tree). One account can belong to several trees, with a different role and member card in each.
-- Embed any tree, timeline, map or memory book on another website with one line of HTML (`/embed/{slug}`).
+- Embed any tree, timeline or map on another website with one line of HTML (`/embed/{slug}`).
 - Indian families first: relationship words (Mama, Bua, Tau, Bhabhi...) in Roman and Devanagari, tithis for every date, shraddh reminders by tithi, names in Hindi, native village and gotra.
 - History of every change with Undo, a bin for deleted people, and duplicate finding with a side-by-side merge.
-- Sources, approximate dates ("about 1890"), adoptive and step parents, marriages and divorces.
-- A printable poster (A3 to A0, vector PDF), a family book, a timeline or a map, with whole branches left out if you like; a weekly email of the family's coming week.
+- Approximate dates ("about 1890"), adoptive and step parents, marriages and divorces.
+- A printable poster (A3 to A0, vector PDF), a family book, a timeline or a map, with whole branches left out if you like.
 - Privacy that defaults to safe: living people's dates and places are hidden from the public unless you say otherwise, per tree and per field.
 
 ## One account, several trees
@@ -54,13 +54,13 @@ untouched. The last owner of a tree cannot be removed from it.
 ## Where the data lives ("data home")
 
 Logins and settings always stay in the app's own database. The family data
-(members, photos, tags) goes wherever the owner chooses, from Tree Settings:
+(members) goes wherever the owner chooses, from Tree Settings:
 
 | Home | Cost | Notes |
 | --- | --- | --- |
 | The app's own database | free | the default, nothing to set up |
 | Your own MySQL / MariaDB / Postgres | free tiers exist (Aiven, Neon, Supabase, your host) | connection test, one-click table setup |
-| Google Sheet | free | two tabs, Members and Media, that the family can also edit by hand |
+| Google Sheet | free | one Members tab that the family can also edit by hand |
 | Airtable base | free to 1,000 records | personal access token |
 | SQLite file | free | one file inside `storage/` |
 | JSON file | free | one readable file; on the desktop app it can sit in a Drive, Dropbox or OneDrive folder |
@@ -110,8 +110,8 @@ docker run -d --name familytree -p 8088:80 \
 Then open http://localhost:8088/install/.
 
 There is no `.env` file. Everything has a default; set your domain, mail
-sender, cron key or upload cap through the commented `environment:` block in
-`docker-compose.yml`. Password resets and the weekly email use SMTP when
+sender or upload cap through the commented `environment:` block in
+`docker-compose.yml`. Password resets use SMTP when
 `SMTP_HOST` is set, otherwise they fall back to PHP's `mail()` (which needs a
 local MTA).
 
@@ -119,7 +119,7 @@ Upgrading: upload the new files over the old ones, keeping `storage/` (which hol
 the SQLite file, the encryption key and caches) and `admin/uploads/`. The app
 re-runs its schema once per schema version by itself.
 
-Nginx: route `/tree/{slug}` and `/tree/{slug}/{events|map|memories}` to
+Nginx: route `/tree/{slug}` and `/tree/{slug}/{events|map}` to
 `tree.php?slug=...&view=...`, deny `/storage` and `/tools`, and serve `/sitemap.xml`
 from `sitemap.php`. The rules in `public_html/.htaccess` are the reference.
 
@@ -155,11 +155,9 @@ Needs PHP 8.1+ with pdo_sqlite and mbstring (Node 20+ for the JS checks). From t
 
 GitHub Actions runs the same on every push and pull request (.github/workflows/ci.yml), on PHP 8.3 and 8.5. The `Container` workflow builds the `Containerfile` and publishes multi-arch images to GitHub Container Registry on `main` and version tags.
 
-## The weekly job
+## Backups
 
-`public_html/cron.php` sends the weekly family email, backs up the tree into `storage/backups/` (8 kept) and
-clears out old data. Run it once a week: `php public_html/cron.php weekly`, or set `CRON_KEY` in the environment and call
-`/cron.php?key=...` from a web cron.
+Backups are your responsibility. Keep `storage/` (SQLite DB, encryption key, caches) and `admin/uploads/` (profile photos, cover pictures, emblems) backed up. Use provider backups (Drive, Dropbox, OneDrive) for external data homes. No automatic backup is provided by the app.
 
 ## Contributing
 

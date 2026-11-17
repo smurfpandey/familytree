@@ -24,9 +24,8 @@ if (!$tenant) { http_response_code(404); echo json_encode(['error' => 'Tree not 
 $role = $_SESSION['admin_user']['role'] ?? 'viewer';
 
 $summary = fn(?array $m) => $m ? ['id' => $m['id'], 'name' => $m['name'], 'img' => $m['img'], 'gender' => $m['gender'], 'birth_date' => $m['birth_date'], 'death_date' => $m['death_date'],
-    'birth_location' => $m['birth_location'], 'fid' => $m['fid'], 'mid' => $m['mid'], 'pids' => $m['pids'], 'wiki' => $m['wiki'], 'nickname' => $m['nickname'],
-    'current_location' => $m['current_location'], 'death_location' => $m['death_location'], 'is_alive' => $m['is_alive'], 'anniversary_date' => $m['anniversary_date'],
-    'insta_url' => $m['insta_url'], 'fb_url' => $m['fb_url']] : null;
+    'birth_location' => $m['birth_location'], 'fid' => $m['fid'], 'mid' => $m['mid'], 'pids' => $m['pids'], 'nickname' => $m['nickname'],
+    'current_location' => $m['current_location'], 'death_location' => $m['death_location'], 'is_alive' => $m['is_alive'], 'anniversary_date' => $m['anniversary_date']] : null;
 
 try {
     $store = ft_store($pdo, $tenant);

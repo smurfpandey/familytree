@@ -158,7 +158,6 @@ const uiUtils = {
           <div class="sk-gen">${sk('sk-node', 4)}</div></div>`,
       events: `<div class="sk-list"><div class="sk-axis">${sk('sk-circle sk-dot', 7)}</div>${row()}${row()}${row()}${row()}</div>`,
       map: `<div class="sk-map">${sk('sk-panel')}${sk('sk-circle sk-pin', 3)}</div>`,
-      memories: `<div class="sk-grid">${sk('sk-card', 24)}</div>`,
       relation: `<div class="sk-list"><div class="sk-pair">${sk('sk-chip', 2)}</div>${sk('sk-card sk-tall')}</div>`,
     }[view] || `<div class="sk-list">${row()}${row()}${row()}</div>`;
     return `<div class="sk-wrap sk-${view}" aria-busy="true" aria-live="polite"><span class="sr-only">${message}</span>${body}</div>`;

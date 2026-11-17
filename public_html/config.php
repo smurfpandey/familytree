@@ -117,39 +117,7 @@ function validateCsrf(): void {
     }
 }
 
-// ── 6. Activity logging ────────────────────────────────────────────────────
-function logActivity(PDO $pdo, string $action, ?string $entity_type = null, ?int $entity_id = null, ?array $changes = null): void {
-    if (!isset($_SESSION['admin_user']['id'])) return;
-    try {
-        $stmt = $pdo->prepare(
-            "INSERT INTO family_activity_logs
-             (user_id, action, entity_type, entity_id, changes, ip_address, user_agent)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->execute([
-            $_SESSION['admin_user']['id'],
-            $action,
-            $entity_type,
-            $entity_id,
-            $changes ? json_encode($changes) : null,
-            $_SERVER['REMOTE_ADDR']      ?? null,
-            $_SERVER['HTTP_USER_AGENT']  ?? null,
-        ]);
-    } catch (PDOException $e) {
-        error_log('logActivity failed: ' . $e->getMessage());
-    }
-}
-
-// ── 7. Permission check ────────────────────────────────────────────────────
-function hasPermission(string $permission): bool {
-    if (empty($_SESSION['admin_user'])) return false;
-    $user = $_SESSION['admin_user'];
-    if ($user['role'] === 'owner') return true;
-    $perms = $user['permissions'] ?? [];
-    return isset($perms[$permission]) && $perms[$permission] === true;
-}
-
-// ── 8. Rate limiting (file-based, Hostinger-safe) ─────────────────────────
+// ── 6. Rate limiting (file-based, Hostinger-safe) ─────────────────────────
 function checkRateLimit(string $key, int $limit = 100, int $window = 3600): void {
     $ip         = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $identifier = md5($ip . $key);
@@ -174,20 +142,7 @@ function checkRateLimit(string $key, int $limit = 100, int $window = 3600): void
     file_put_contents($file, json_encode($attempts), LOCK_EX);
 }
 
-// ── 9. Input sanitisation ──────────────────────────────────────────────────
-function sanitizeInput($input, string $type = 'string') {
-    if (is_array($input)) {
-        return array_map(fn($i) => sanitizeInput($i, $type), $input);
-    }
-    return match ($type) {
-        'int'   => filter_var($input, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
-        'email' => filter_var($input, FILTER_SANITIZE_EMAIL),
-        'url'   => filter_var($input, FILTER_SANITIZE_URL),
-        default => htmlspecialchars(trim((string)$input), ENT_QUOTES, 'UTF-8'),
-    };
-}
-
-// ── 10. Tenant resolution ─────────────────────────────────────────────────
+// ── 7. Tenant resolution ─────────────────────────────────────────────────
 /**
  * The family this install serves: APP_TENANT_ID when set, otherwise the only
  * tenant in SQLite. A single-family self-host never needs to configure it.
@@ -209,6 +164,14 @@ function ft_default_tenant_id(): string {
 function getAdminTenantId(): string {
     if (!empty($_SESSION['tenant_id'])) {
         return (string)$_SESSION['tenant_id'];
+    }
+    if (!empty($_SESSION['admin_user']['tenant_id'])) {
+        return (string)$_SESSION['admin_user']['tenant_id'];
+    }
+    // A signed-in account with no active tree is in an inconsistent state.
+    // Do not silently read or write the default tree; let the caller 404.
+    if (!empty($_SESSION['admin_logged_in'])) {
+        return '';
     }
     return ft_default_tenant_id();
 }

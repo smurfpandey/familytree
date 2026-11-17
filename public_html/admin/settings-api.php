@@ -10,6 +10,7 @@
 define('FT_APP', 1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../includes/privacy.php';
+require_once __DIR__ . '/../includes/media-tools.php';
 
 header('Content-Type: application/json');
 
@@ -24,7 +25,7 @@ $method   = $_SERVER['REQUEST_METHOD'];
 
 const FIELD_LABELS_API = [
     'birth_date' => 'Date of Birth', 'birth_location' => 'Birth Location', 'death_date' => 'Death Date', 'death_location' => 'Death Location',
-    'current_location' => 'Current Location', 'social_media' => 'Social Media (Instagram / Facebook)', 'photos' => 'Photos', 'bio' => 'Biography / Wiki', 'anniversary_date' => 'Marriage Anniversary',
+    'current_location' => 'Current Location', 'anniversary_date' => 'Marriage Anniversary',
 ];
 
 if ($method === 'GET') {
@@ -46,22 +47,22 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    $tenantId = (string)ft_require_tree_role($pdo, ['owner'])['id'];
+
     $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
     if (!$token || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) { http_response_code(403); echo json_encode(['error' => 'Invalid CSRF token']); exit; }
 
     $body = json_decode(file_get_contents('php://input'), true);
     if (!$body) $body = $_POST;
 
-    // ── an emblem image: PNG / JPEG / WebP / SVG as a data URL, at most 400 KB ─
+    // ── an emblem image: PNG / JPEG / WebP as a data URL, at most 400 KB ─
     if (!empty($body['emblem_upload'])) {
-        if (!preg_match('~^data:(image/(png|jpeg|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)$~', $body['emblem_upload'], $m)) { http_response_code(400); echo json_encode(['error' => 'Send a PNG, JPEG, WebP or SVG']); exit; }
+        if (!preg_match('~^data:(image/(png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$~', $body['emblem_upload'], $m)) { http_response_code(400); echo json_encode(['error' => 'Send a PNG, JPEG or WebP image']); exit; }
         $bin = base64_decode($m[3], true);
         if ($bin === false || strlen($bin) > 400 * 1024) { http_response_code(400); echo json_encode(['error' => 'Emblem must be under 400 KB']); exit; }
-        $ext = ['png' => 'png', 'jpeg' => 'jpg', 'webp' => 'webp', 'svg+xml' => 'svg'][$m[2]];
-        if ($ext === 'svg') {
-            if (preg_match('/<script|onload=|onerror=|javascript:|<foreignObject/i', $bin)) { http_response_code(400); echo json_encode(['error' => 'That SVG contains script, which is not allowed']); exit; }
-        } elseif (!@getimagesizefromstring($bin)) { http_response_code(400); echo json_encode(['error' => 'Not a readable image']); exit; }
-        $dir = __DIR__ . '/uploads/emblems';
+        $ext = ['png' => 'png', 'jpeg' => 'jpg', 'webp' => 'webp'][$m[2]];
+        if (!@getimagesizefromstring($bin)) { http_response_code(400); echo json_encode(['error' => 'Not a readable image']); exit; }
+        $dir = rtrim(ft_uploads_dir(), '/\\') . '/emblems';
         if (!is_dir($dir)) @mkdir($dir, 0755, true);
         foreach (glob($dir . '/' . $tenantId . '.*') ?: [] as $old) @unlink($old);
         $file = $dir . '/' . $tenantId . '.' . $ext;
@@ -79,7 +80,7 @@ if ($method === 'POST') {
 
     // ── the cover picture on member cards: JPEG / PNG / WebP, at most 1.5 MB (the page shrinks it first) ─
     if (!empty($body['cover_upload']) || !empty($body['cover_remove'])) {
-        $dir = __DIR__ . '/uploads/covers';
+        $dir = rtrim(ft_uploads_dir(), '/\\') . '/covers';
         $url = null;
         if (!empty($body['cover_upload'])) {
             if (!preg_match('~^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$~', $body['cover_upload'], $m)) { http_response_code(400); echo json_encode(['error' => 'Send a JPEG, PNG or WebP picture']); exit; }

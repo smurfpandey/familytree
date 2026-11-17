@@ -54,7 +54,7 @@ if ($problems) $err = 'Before installing, this server needs ' . implode(', ', $p
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$problems) {
     $name     = $in['admin_name'];
-    $email    = $in['admin_email'];
+    $email    = strtolower(trim($in['admin_email']));
     $pass     = (string)($_POST['admin_pass'] ?? '');
     $treeName = $in['tree_name'] !== '' ? $in['tree_name'] : ($name !== '' ? $name . "'s family" : '');
     $slug     = strtolower($in['tree_slug'] !== '' ? $in['tree_slug'] : preg_replace('/[^a-z0-9]+/', '-', strtolower($treeName)));
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$problems) {
             $dupe->execute([$slug]);
             if ($dupe->fetchColumn()) throw new RuntimeException('The link name "' . $slug . '" is already used. Choose another.');
 
-            $dupe = $pdo->prepare('SELECT 1 FROM family_users WHERE email = ? LIMIT 1');
+            $dupe = $pdo->prepare('SELECT 1 FROM family_users WHERE LOWER(email) = ? LIMIT 1');
             $dupe->execute([$email]);
             if ($dupe->fetchColumn()) throw new RuntimeException('The email "' . $email . '" is already used.');
 

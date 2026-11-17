@@ -94,12 +94,6 @@ function ft_delete_tree(PDO $pdo, array $tenant): array {
             try { $pdo->prepare("DELETE FROM $tbl WHERE tenant_id = ?")->execute([$tid]); }
             catch (PDOException $e) { if (!preg_match('/no such table|doesn\'t exist/i', $e->getMessage())) throw $e; }
         }
-        // accounts whose last-open tree this was move to another tree they belong to
-        $u = $pdo->prepare("SELECT id FROM family_users WHERE tenant_id = ?"); $u->execute([$tid]);
-        foreach ($u->fetchAll(PDO::FETCH_COLUMN) as $id) {
-            $n = $pdo->prepare("SELECT tenant_id, role FROM tenant_users WHERE user_id = ? ORDER BY created_at LIMIT 1"); $n->execute([$id]);
-            if ($r = $n->fetch(PDO::FETCH_ASSOC)) $pdo->prepare("UPDATE family_users SET tenant_id = ?, role = ? WHERE id = ?")->execute([$r['tenant_id'], $r['role'], $id]);
-        }
         $pdo->prepare("DELETE FROM tenants WHERE id = ?")->execute([$tid]);
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
@@ -131,7 +125,6 @@ function ft_transfer_tree(PDO $pdo, string $tid, int $fromUid, int $toUid): void
     $c->execute([$tid, $toUid]);
     if ($toUid === $fromUid || !$c->fetchColumn()) throw new InvalidArgumentException('The new owner must already be an editor or owner of that tree.');
     $pdo->prepare("UPDATE tenant_users SET role = 'owner' WHERE tenant_id = ? AND user_id = ?")->execute([$tid, $toUid]);
-    $pdo->prepare("UPDATE family_users SET role = 'owner' WHERE id = ? AND tenant_id = ?")->execute([$toUid, $tid]);
     $pdo->prepare("UPDATE tenants SET owner_user_id = ? WHERE id = ?")->execute([$toUid, $tid]);
     $pdo->prepare("DELETE FROM tenant_users WHERE tenant_id = ? AND user_id = ?")->execute([$tid, $fromUid]);
 }

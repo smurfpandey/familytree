@@ -39,12 +39,10 @@ try {
     }
     $tenantId = $tenant['id'];
 
-    // Logged-in owner/editor of THIS tree sees unfiltered data (their own
-    // events / map / memories would otherwise be mostly empty for living people)
-    $isOwner = !empty($_SESSION['admin_logged_in'])
-            && !empty($_SESSION['tenant_id'])
-            && $_SESSION['tenant_id'] === $tenantId;
-    enforceTreeVisibility($tenant['visibility'], $isOwner);
+    // Who is asking? A member of THIS tree (even when their admin session is
+    // on another tree) sees members-level fields; editors and owners see all.
+    $audience = ft_tree_audience($pdo, $tenantId);
+    enforceTreeVisibility($tenant['visibility'], $audience !== 'public');
     if (($tenant['visibility'] ?? 'public') === 'public') {
         header('Access-Control-Allow-Origin: *');   // embeddable only when the tree itself is public
     }
@@ -56,27 +54,12 @@ try {
     foreach ($rows as &$row) {
         if (!$row['birth_date']) $row['birth_date'] = '';
         $row['nickname'] = $row['nickname'] ?: '';
-        $row['photos']   = [];
     }
-    unset($row);
-
-    // Photos, grouped by tagged member (assigned before privacy is applied)
-    $photosByMember = [];
-    foreach ($store->media() as $m) {
-        foreach ($m['member_ids'] as $mid) {
-            $photosByMember[$mid][] = [
-                'id' => $m['id'], 'url' => $m['url'], 'type' => $m['type'] ?: 'image',
-                'title' => $m['title'], 'description' => $m['description'], 'created_at' => $m['created_at'],
-            ];
-        }
-    }
-    foreach ($rows as &$row) if (isset($photosByMember[$row['id']])) $row['photos'] = $photosByMember[$row['id']];
     unset($row);
 
     $output = [];
     foreach ($rows as $row) {
-        if ($isOwner) { unset($row['privacy_override'], $row['tenant_id']); $output[] = $row; }
-        else $output[] = applyPublicPrivacy($row, $privacySettings);
+        $output[] = applyPublicPrivacy($row, $privacySettings, $audience);
     }
     echo json_encode($output);
 

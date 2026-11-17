@@ -15,7 +15,7 @@ try {
     foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $slug) {
         $base = $host . '/tree/' . rawurlencode($slug);
         $urls[] = [$base, 'weekly', '0.8'];
-        foreach (['events', 'map', 'memories'] as $v) $urls[] = [$base . '/' . $v, 'monthly', '0.5'];
+        foreach (['events', 'map'] as $v) $urls[] = [$base . '/' . $v, 'monthly', '0.5'];
     }
 } catch (PDOException $e) {
     error_log('sitemap.php: ' . $e->getMessage());

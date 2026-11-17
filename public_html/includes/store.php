@@ -395,10 +395,22 @@ class CachedFamilyStore implements FamilyStore {
     private function file(string $what): string { return ft_cache_dir() . "/{$this->tid}.$what.json"; }
     private function cached(string $what, callable $load): array {
         $f = $this->file($what);
-        if (is_file($f) && time() - filemtime($f) < self::TTL) { $d = json_decode((string)file_get_contents($f), true); if (is_array($d)) return $d; }
-        $d = $load(); file_put_contents($f, json_encode($d), LOCK_EX); return $d;
+        if (is_file($f) && time() - (int)@filemtime($f) < self::TTL) {
+            $d = json_decode((string)@file_get_contents($f), true);
+            if (is_array($d)) return $d;
+        }
+        $d = $load();
+        $json = json_encode($d);
+        if ($json !== false) {
+            // Write beside the cache file, then rename: readers never see a
+            // half-written document, and a concurrent writer's file wins whole.
+            $tmp = $f . '.' . bin2hex(random_bytes(6)) . '.tmp';
+            if (@file_put_contents($tmp, $json, LOCK_EX) !== false) @rename($tmp, $f);
+            @unlink($tmp);
+        }
+        return $d;
     }
-    private function bust(): void { ft_cache_forget($this->tid); }
+    public function bust(): void { ft_cache_forget($this->tid); }
     public function members(): array { return $this->cached('members', fn() => $this->inner->members()); }
     public function member(int $id): ?array { foreach ($this->members() as $m) if ($m['id'] === $id) return $m; return null; }
     public function insertMember(array $d): int { $id = $this->inner->insertMember($d); $this->bust(); return $id; }
@@ -501,8 +513,7 @@ const FT_ROW_TABLES = [
 function ft_remap_accounts(PDO $pdo, string $tenantId, array $map): void {
     foreach ($map as $old => $new) {
         if ($old === $new) continue;
-        $pdo->prepare("UPDATE family_users SET member_id = ? WHERE tenant_id = ? AND member_id = ?")->execute([$new, $tenantId, $old]);
-        try { $pdo->prepare("UPDATE tenant_users SET member_id = ? WHERE tenant_id = ? AND member_id = ?")->execute([$new, $tenantId, $old]); } catch (Throwable $e) {}
+        $pdo->prepare("UPDATE tenant_users SET member_id = ? WHERE tenant_id = ? AND member_id = ?")->execute([$new, $tenantId, $old]);
     }
 }
 

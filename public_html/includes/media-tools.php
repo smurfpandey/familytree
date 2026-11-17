@@ -7,9 +7,15 @@
 /** the storage cap of one tree, in bytes */
 function ft_tree_quota(): int { return max(50, (int)(getenv('FT_TREE_STORAGE_MB') ?: 1024)) * 1048576; }
 
+/** where uploaded files live (the desktop app and tests can override it) */
+function ft_uploads_dir(): string {
+    $dir = getenv('FT_UPLOADS_DIR') ?: (dirname(__DIR__) . '/admin/uploads');
+    return rtrim($dir, '/\\') . '/';
+}
+
 /** bytes this tree's uploaded files take: media plus portraits, only files under /admin/uploads/ */
 function ft_tree_bytes(FamilyStore $store): int {
-    $dir = dirname(__DIR__) . '/admin/uploads/';
+    $dir = ft_uploads_dir();
     $urls = array_column($store->media(), 'url');
     foreach ($store->members() as $m) if (!empty($m['img'])) $urls[] = $m['img'];
     $seen = []; $n = 0;

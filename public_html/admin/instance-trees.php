@@ -22,7 +22,7 @@
                 <strong>Family trees</strong>
                 <span id="instanceTreeCountBadge" class="badge">0</span>
             </div>
-            <span>Each tree has its own members, photos, settings and data home</span>
+            <span>Each tree has its own members, settings and data home</span>
         </div>
     </div>
     <div class="table-scroll">

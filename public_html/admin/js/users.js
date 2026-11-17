@@ -349,8 +349,7 @@ function renderAssignments(u) {
         const perms = a.permissions || {};
         [
             ['can_edit_members', 'Edit people'],
-            ['can_view_stats', 'Stats'],
-            ['can_manage_media', 'Media']
+            ['can_view_stats', 'Stats']
         ].forEach(function (pair) {
             const label = document.createElement('label');
             label.style.display = 'flex';
@@ -393,7 +392,7 @@ function assignmentPayload(userId, tenantId) {
         ? (memberEl.dataset.loaded === '1' ? (memberEl.value || null) : (memberEl.dataset.current || null))
         : null;
     const permissions = {};
-    ['can_edit_members', 'can_view_stats', 'can_manage_media'].forEach(function (key) {
+    ['can_edit_members', 'can_view_stats'].forEach(function (key) {
         const box = document.querySelector('[data-assign-perm="' + CSS.escape(tenantId + ':' + key) + '"]');
         permissions[key] = !!(box && box.checked);
     });
@@ -443,7 +442,7 @@ async function addAssignment() {
         tenant_id: treeId,
         role: role,
         member_id: memberId ? Number(memberId) : null,
-        permissions: { can_edit_members: false, can_view_stats: false, can_manage_media: false }
+        permissions: { can_edit_members: false, can_view_stats: false }
     };
 
     if (msg) { msg.textContent = 'Saving…'; msg.className = 'dh-msg'; }

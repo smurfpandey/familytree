@@ -6,7 +6,7 @@ const tdEsc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 const tdWhen = d => d ? new Date(String(d).replace(' ', 'T')).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 const tdYear = d => d ? String(d).slice(0, 4) : '';
 const TD_LABELS = { name: 'Name', nickname: 'Nickname', gender: 'Gender', birth_date: 'Born', birth_location: 'Birthplace', death_date: 'Died', death_location: 'Place of death',
-  is_alive: 'Living', current_location: 'Lives in', img: 'Photo', insta_url: 'Instagram', fb_url: 'Facebook', anniversary_date: 'Anniversary', wiki: 'Biography',
+  is_alive: 'Living', current_location: 'Lives in', img: 'Photo', anniversary_date: 'Anniversary',
   fid: 'Father', mid: 'Mother', pids: 'Partners', extra: 'More details', is_private: 'Private', privacy_override: 'Privacy override' };
 let _tdPairs = [];
 let _tdFocusMember = null;
@@ -67,7 +67,7 @@ function tdCompare(i) {
       <label><input type="radio" name="td${i}_keep" value="a"${keepA ? ' checked' : ''}> ${tdEsc(p.a.name)} (#${p.a.id})</label>
       <label><input type="radio" name="td${i}_keep" value="b"${keepA ? '' : ' checked'}> ${tdEsc(p.b.name)} (#${p.b.id})</label></div>
     <table><tbody>${rows}</tbody></table>
-    <p class="td-note">Parents, partners, children, photo tags and accounts of the other entry all move to the one you keep. Sources and other details are combined. You can undo this from History.</p>
+    <p class="td-note">Parents, partners, children and accounts of the other entry all move to the one you keep. Other details are combined. You can undo this from History.</p>
     <div class="td-actions"><button type="button" class="btn btn-primary btn-sm" onclick="tdMerge(${i})">Merge into one person</button></div>`;
   el.hidden = false;
 }

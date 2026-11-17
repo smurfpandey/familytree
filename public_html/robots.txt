@@ -2,6 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api-family.php
-Disallow: /api-media.php
 Disallow: /api-geo.php
 

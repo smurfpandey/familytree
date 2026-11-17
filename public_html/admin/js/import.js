@@ -40,7 +40,7 @@ async function importPreview() {
         <div><dt>People</dt><dd>${s.people.toLocaleString()}</dd></div>
         <div><dt>Exact births</dt><dd>${s.exact_births.toLocaleString()}</dd></div>
         <div><dt>Places</dt><dd>${s.places.toLocaleString()}</dd></div></dl>
-      <div>${impEsc(d.format)}${s.families != null ? ` · ${s.families.toLocaleString()} families` : ''}${s.photos ? ` · ${s.photos} online photo${s.photos === 1 ? '' : 's'}` : ''}${s.approximate_dates ? ` · ${s.approximate_dates} approximate dates kept in biographies` : ''}</div>
+      <div>${impEsc(d.format)}${s.families != null ? ` · ${s.families.toLocaleString()} families` : ''}${s.photos ? ` · ${s.photos} online photo${s.photos === 1 ? '' : 's'}` : ''}${s.approximate_dates ? ` · ${s.approximate_dates} approximate dates` : ''}</div>
       <div style="margin-top:4px;color:var(--text-secondary)">${d.sample.map(impEsc).join(', ')}${s.people > d.sample.length ? ', …' : ''}</div>
       ${s.warnings && s.warnings.length ? '<ul>' + s.warnings.map(w => `<li>${impEsc(w)}</li>`).join('') + '</ul>' : ''}`;
     box.hidden = false;
@@ -52,7 +52,7 @@ async function importPreview() {
 }
 async function importRun() {
   const mode = document.querySelector('input[name=impMode]:checked').value;
-  if (mode === 'replace' && !confirm('Replace everyone in this tree with the file? This cannot be undone. Export a backup first if unsure.')) return;
+  if (mode === 'replace' && !confirm('Replace everyone in this tree with the file? This cannot be undone. Use Export everything first if unsure.')) return;
   const go = document.getElementById('impGo');
   go.disabled = true; go.textContent = 'Importing…';
   try {

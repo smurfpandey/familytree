@@ -10,6 +10,7 @@ header('Content-Type: application/json');
 define('FT_APP', 1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/privacy.php';
+require_once __DIR__ . '/includes/store.php';
 require_once __DIR__ . '/includes/events.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') { http_response_code(405); echo json_encode(['error' => 'Read-only API']); exit; }
@@ -18,10 +19,24 @@ try {
     $treeSlug = trim($_GET['tree'] ?? $_GET['slug'] ?? '');
     $tenant = $treeSlug !== '' ? getPublicTenantBySlug($pdo, $treeSlug) : loadTenant($pdo, getPublicTenantId());
     if (!$tenant) { http_response_code(404); echo json_encode(['error' => 'Tree not found']); exit; }
-    $isOwner = !empty($_SESSION['admin_logged_in']) && !empty($_SESSION['tenant_id']) && $_SESSION['tenant_id'] === $tenant['id'];
-    enforceTreeVisibility($tenant['visibility'], $isOwner);
+    $audience = ft_tree_audience($pdo, $tenant['id']);
+    enforceTreeVisibility($tenant['visibility'], $audience !== 'public');
     if (($tenant['visibility'] ?? 'public') === 'public') header('Access-Control-Allow-Origin: *');
-    echo json_encode(ft_family_events($pdo, $tenant['id']));
+
+    $events = ft_family_events($pdo, $tenant['id']);
+    // A private person's id must not leak through an event's tag list.
+    if ($audience !== 'owner') {
+        try {
+            $private = [];
+            foreach (ft_store($pdo, $tenant)->members() as $m) if (!empty($m['is_private'])) $private[] = (int)$m['id'];
+            $events = ft_events_hide_private($events, $private);
+        } catch (Throwable $e) {
+            // We cannot tell who is private: show the events without their tags.
+            foreach ($events as &$ev) $ev['people'] = [];
+            unset($ev);
+        }
+    }
+    echo json_encode($events);
 } catch (Throwable $e) {
     error_log('api-events.php: ' . $e->getMessage());
     http_response_code(500);

@@ -21,8 +21,20 @@ class JsonFamilyStore extends RowFamilyStore {
         // the desktop app may point anywhere; a server only inside its storage/ folder
         if (getenv('FT_DESKTOP')) return true;
         $base = realpath(ft_storage_dir()) ?: '';
-        $dir  = realpath(dirname($file)) ?: '';
-        return $base !== '' && $dir !== '' && str_starts_with($dir, $base);
+        if ($base === '') return false;
+        $base = rtrim($base, DIRECTORY_SEPARATOR);
+
+        $inside = static function (string $path) use ($base): bool {
+            return $path === $base || str_starts_with($path, $base . DIRECTORY_SEPARATOR);
+        };
+
+        $dir = realpath(dirname($file));
+        if ($dir === false || !$inside(rtrim($dir, DIRECTORY_SEPARATOR))) return false;
+
+        // An existing file may be a symlink pointing out of storage/.
+        if (is_file($file) && !$inside((string)(realpath($file) ?: ''))) return false;
+
+        return true;
     }
     private function path(): string {
         $f = (string)($this->cfg['file'] ?? '');

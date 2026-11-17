@@ -30,8 +30,8 @@ try {
     require_once dirname(__DIR__) . '/includes/store.php';
     $tenantRow = loadTenant($pdo, $tenantId);
     $store = $tenantRow ? ft_store($pdo, $tenantRow) : null;
-    $memberCount = 0; $mediaCount = 0; $storeError = null; $storeMembers = [];
-    try { if ($store) { $storeMembers = $store->members(); $memberCount = count($storeMembers); $mediaCount = $store->countMedia(); } }
+    $memberCount = 0; $storeError = null; $storeMembers = [];
+    try { if ($store) { $storeMembers = $store->members(); $memberCount = count($storeMembers); } }
     catch (Throwable $e) { $storeError = $e->getMessage(); }
 
     // Accounts belong to the whole instance; switching trees does not change them.
@@ -76,32 +76,16 @@ try {
     // ── Recent Activity ───────────────────────────────────────────
     $activity = [];
     try {
-        // Check if tenant_id column exists in activity logs
-        $hasTenant = false;
-        $cols = $pdo->query("DESCRIBE family_activity_logs")->fetchAll(PDO::FETCH_COLUMN);
-        if (in_array('tenant_id', $cols)) $hasTenant = true;
-
-        if ($hasTenant) {
-            $stmt = $pdo->prepare("
-                SELECT l.*, u.display_name, u.email
-                FROM family_activity_logs l
-                LEFT JOIN family_users u ON l.user_id = u.id
-                WHERE l.tenant_id = ?
-                ORDER BY l.created_at DESC
-                LIMIT 10
-            ");
-            $stmt->execute([$tenantId]);
-        } else {
-            // Fallback: join via user's tenant
-            $stmt = $pdo->prepare("
-                SELECT l.*, u.display_name, u.email
-                FROM family_activity_logs l
-                LEFT JOIN family_users u ON l.user_id = u.id AND u.tenant_id = ?
-                ORDER BY l.created_at DESC
-                LIMIT 10
-            ");
-            $stmt->execute([$tenantId]);
-        }
+        $stmt = $pdo->prepare("
+            SELECT l.id, l.user_id, l.action, l.entity_type, l.entity_id,
+                   l.changes, l.created_at, u.display_name, u.email
+            FROM family_activity_logs l
+            LEFT JOIN family_users u ON l.user_id = u.id
+            WHERE l.tenant_id = ?
+            ORDER BY l.created_at DESC
+            LIMIT 10
+        ");
+        $stmt->execute([$tenantId]);
         $activity = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
         // table may not exist yet
@@ -111,7 +95,6 @@ try {
         'stats' => [
             'members'  => $memberCount,
             'users'    => $userCount,
-            'media'    => $mediaCount,
             'events'   => count($events),
         ],
         'datahome' => ['kind' => $store ? $store->kind() : 'here', 'error' => $storeError],

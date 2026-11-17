@@ -64,17 +64,6 @@
 
 </div>
 
-<!-- Weekly digest email -->
-<div class="card" id="digestCard" style="margin-top:24px;">
-    <div class="card-header"><h3>Weekly email</h3></div>
-    <div class="card-body">
-        <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer;">
-            <input type="checkbox" id="digestOn" onchange="saveDigest(this.checked)" style="margin-top:3px;width:18px;height:18px;accent-color:var(--border-focus);">
-            <span>Every Monday, email me the week's birthdays, anniversaries, remembrance days and tithi days in my family trees.<br>
-            <small style="color:var(--text-muted)">Only sent when something is coming up.</small></span>
-        </label>
-    </div>
-</div>
 
 <!-- Danger Zone -->
 <div class="card" style="margin-top:24px;border-color:color-mix(in srgb,var(--red) 30%,transparent);">

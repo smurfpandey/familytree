@@ -32,10 +32,10 @@ function ft_guides(): array {
 <h2 id="first-people">Add the first people</h2>
 <p>You land on the <b>Dashboard</b>. The quickest way to start is on the tree itself: open <b>View Family Tree</b>, turn on <b>Build Mode</b> and add yourself, then your parents, partner and children. <a href="/guide/adding-people">Adding people</a> shows each step.</p>
 <p>Already have a tree on Ancestry, MyHeritage or another site? <a href="/guide/importing">Import it</a> instead and skip the typing.</p>
-{$fig('dashboard', 'The admin dashboard with counts of members, users, photos and upcoming events')}
+{$fig('dashboard', 'The admin dashboard with counts of members, users and upcoming events')}
 <h2 id="share">Share it</h2>
 <p>New trees are private by default. When you are ready, choose who can see it in <a href="/guide/privacy">Tree Settings</a>, then press <b>Share</b> on the tree to send the link on WhatsApp or copy it.</p>
-{$note('<b>Living people stay protected.</b> Even on a public tree, the birth dates, birthplaces, current homes and social links of living people are hidden from visitors unless you choose otherwise.')}
+{$note('<b>Living people stay protected.</b> Even on a public tree, the birth dates, birthplaces and current homes of living people are hidden from visitors unless you choose otherwise.')}
 HTML],
 
     'adding-people' => ['section' => 'Start here', 'title' => 'Add people and relationships', 'mins' => 4,
@@ -52,36 +52,19 @@ HTML],
 {$clip('add-person', 'Adding a child in Build Mode: press the button under a person, type a name, add.')}
 {$fig('build-mode', 'A tree in Build Mode with add buttons around each card')}
 <h2 id="members-page">In the admin, on the Members page</h2>
-<p>Open <b>Admin &gt; Members</b> and press <b>Add Member</b>, or click anyone in the list to edit them. The form has every field: name and nickname, gender, birth and death dates and places, current location, father, mother, partners and wedding anniversary, a photo, and social links.</p>
+<p>Open <b>Admin &gt; Members</b> and press <b>Add Member</b>, or click anyone in the list to edit them. The form has every field: name and nickname, gender, birth and death dates and places, current location, father, mother, partners and wedding anniversary, and a profile photo.</p>
 {$fig('member-form', 'The member form with basic information, birth details and family relations', 'Choose the father and mother from the list; partners can be several.')}
 <h2 id="tips">Good to know</h2>
 <ul>
-  <li><b>Dates you are unsure of</b>: leave the date empty and write "about 1890" in the biography. A wrong exact date is worse than none.</li>
+  <li><b>Profile photos</b>: in a person's form, use <b>Upload photo</b> or paste an image link. Square photos with the face in the middle look best in the round frame. On the tree, people without a photo show their initial instead.</li>
+  <li><b>Dates you are unsure of</b>: leave the date empty and use the <b>About</b> or <b>Only the year</b> options described in <a href="/guide/more-details">Uncertain dates</a>.</li>
   <li><b>Both families of a couple</b>: when both partners have parents in the tree, a small <b>+</b> on a card switches which side's family is shown above them.</li>
   <li><b>Big families</b>: use <b>Collapse all</b> and the <b>−</b> under a couple to fold branches away, and the search box to jump to anyone.</li>
 </ul>
 HTML],
 
-    'details-photos' => ['section' => 'Start here', 'title' => 'Photos, videos and stories', 'mins' => 3,
-        'summary' => 'Give each person a portrait, then fill the memory book with photos, videos and voice notes.',
-        'body' => <<<HTML
-<h2 id="portrait">A portrait for each person</h2>
-<p>In a person's form, use <b>Upload Image</b> or paste an image link. Square photos with the face in the middle look best in the round frame. On the tree, people without a photo show their initial instead.</p>
-<h2 id="memory-book">The memory book</h2>
-<ol class="g-steps">
-  <li>Open <b>Admin &gt; Photos</b> and press <b>Upload photo</b>. Photos, videos (MP4, WebM, MOV) and audio such as voice notes all work.</li>
-  <li>Give it a title and a few words about it: who, where, when.</li>
-  <li>Tag the people in it. Each tagged person shows the memory on their page.</li>
-</ol>
-{$fig('photos', 'The Photos page with uploaded photos and the details of one photo', 'Click a photo to edit its title, description and tags.')}
-<p>Everyone who can see the tree finds these under <b>Memories</b>, arranged by year, with filters for photos, videos and voice notes, and a filter by person.</p>
-{$fig('memories', 'The Memories view of a tree, grouped by year, with photo cards', 'The memory book of the Windsor demo tree.')}
-<h2 id="stories">Stories</h2>
-<p>The biography field takes as much as you want to write: how a grandparent met their partner, the village they came from, what they did for a living. It shows on the person's page and on their exported card.</p>
-HTML],
-
-    'more-details' => ['section' => 'Start here', 'title' => 'Uncertain dates, sources, adoption and divorce', 'mins' => 3,
-        'summary' => 'Record what you know as you know it: "about 1890", where a fact comes from, step and adoptive parents, a divorce.',
+    'more-details' => ['section' => 'Start here', 'title' => 'Uncertain dates, adoption and divorce', 'mins' => 3,
+        'summary' => 'Record what you know as you know it: "about 1890", step and adoptive parents, a divorce.',
         'body' => <<<HTML
 <p>Open a person on the tree and press <b>Edit</b>. Below the usual fields are a few that make a tree trustworthy.</p>
 <h2 id="roots">Name in Hindi, native village, gotra</h2>
@@ -89,9 +72,7 @@ HTML],
 {$fig('card-roots', 'A member card showing the Hindi name, the birth tithi, native place and gotra')}
 <h2 id="approx">When you don't know the exact date</h2>
 <p>Under the birth or death date, choose <b>About</b>, <b>Before</b>, <b>After</b>, <b>Between</b> or <b>Only the year</b>, and type the year. The card says "about 1890", and the timeline places the person with a dashed ring. Files from other sites keep their approximate dates the same way when you import them.</p>
-<h2 id="sources">Sources</h2>
-<p>Under <b>Sources</b>, note where each fact comes from: a certificate, a family register, a gravestone, a website, or Grandma's memory. Add a link if there is one. Sources show at the bottom of the card, and travel with GEDCOM imports and exports.</p>
-{$fig('edit-sources', 'The Sources section of the edit window with one source filled in')}
+
 <h2 id="families">Adoptive and step parents, marriages and divorce</h2>
 <ul>
   <li>Under <b>Parents</b>, say whether the father or mother is the birth parent, or adoptive, step or foster.</li>
@@ -101,18 +82,18 @@ HTML],
 
     /* ── Explore ───────────────────────────────────────────────────────── */
     'exploring' => ['section' => 'Explore', 'title' => 'Find your way around a tree', 'mins' => 4,
-        'summary' => 'The tree, the timeline, the map, the memory book, and how to find how two people are related.',
+        'summary' => 'The tree, the timeline, the map, and how to find how two people are related.',
         'body' => <<<HTML
-<p>Every tree has four views along the top: <b>Tree</b>, <b>Events</b>, <b>Map</b> and <b>Memories</b>. They work the same on a phone: pinch to zoom, drag to move, tap a person.</p>
+<p>Every tree has three views along the top: <b>Tree</b>, <b>Events</b> and <b>Map</b>. They work the same on a phone: pinch to zoom, drag to move, tap a person.</p>
 <h2 id="person">A person's page</h2>
-<p>Tap anyone to open their page on the right: photo, dates, places, age, partners, children, and their story. <b>Export</b> saves a card of the person as an image or PDF, with the family emblem on it.</p>
+<p>Tap anyone to open their page on the right: photo, dates, places, age, partners and children. <b>Export</b> saves a card of the person as an image or PDF, with the family emblem on it.</p>
 {$fig('member-panel', 'A tree with one person open in the side panel showing dates, places, spouse and children')}
 <h2 id="events">Events: timeline, list and calendar</h2>
 <p>Births, marriages and deaths on one timeline, with the decades along the bottom. Switch to <b>List</b> or <b>Calendar</b> to see the birthdays and anniversaries coming up.</p>
 {$fig('events', 'The timeline view of the Kennedy family with births, marriages and deaths placed by year')}
 <h3 id="family-events">Family events</h3>
 <p>Add the days that matter to your family: a puja every Diwali, a reunion, a wedding, the barsi of someone not in the tree. Press <b>Add event</b> on the Events page, give it a name, a kind and a date, and pick the people it is about.</p>
-<p>Tick <b>Repeats every year</b> for festivals and anniversaries; leave it off for a one-time day. If you don't know the year, tick <b>Year not known</b>. Family events show in the timeline, the list, the calendar and the weekly email. Use the <b>Family events</b> chip to hide or show them, and the search box to find any event by name, person or place.</p>
+<p>Tick <b>Repeats every year</b> for festivals and anniversaries; leave it off for a one-time day. If you don't know the year, tick <b>Year not known</b>. Family events show in the timeline, the list and the calendar. Use the <b>Family events</b> chip to hide or show them, and the search box to find any event by name, person or place.</p>
 <h2 id="map">Map</h2>
 <p>Where everyone was born, lived and died. <b>Living now</b> shows where the family is today; <b>Birthplaces</b> and <b>Everything</b> show the history.</p>
 {$fig('map', 'A world map with clusters of family places across Europe and beyond', 'The Romanovs, from Moscow to the rest of the world.')}
@@ -131,7 +112,7 @@ HTML],
 <p>For every birth and death date, the card shows the Hindu date: the month, the paksha and the tithi, for example <em>Kartik Krishna Ashtami</em>. Months are named the North Indian way (purnimanta).</p>
 <p>If an elder only knows their tithi, not the English date, open their edit window and fill in <b>Hindu date of birth (tithi)</b> or <b>Shraddh / barsi tithi</b>, with the Samvat year if you know it.</p>
 <h2 id="shraddh">Shraddh by tithi, every year</h2>
-<p>The tithi falls on a different English date each year. FamilyTree works it out and puts it in <b>Events</b>: the list of what's coming up, and the calendar, where tithi days have a dashed border. The weekly email includes them too.</p>
+<p>The tithi falls on a different English date each year. FamilyTree works it out and puts it in <b>Events</b>: the list of what's coming up, and the calendar, where tithi days have a dashed border. They show in the Events timeline too.</p>
 {$fig('calendar-tithi', 'The calendar view with tithi days shown with dashed borders')}
 {$note('Prefer a tree without Hindu dates? Turn them off in <b>Tree Settings &gt; Tree look</b>. Tithis you typed in by hand always show.', 'info')}
 HTML],
@@ -149,9 +130,9 @@ HTML],
 </ul>
 {$fig('privacy-visibility', 'The three visibility choices: public, unlisted and private')}
 <h2 id="fields">Field by field</h2>
-<p>Below that, choose for each kind of detail who sees it: everyone, signed-in family only, or just you. Phone numbers might be family only; a biography might be public.</p>
+<p>Below that, choose for each kind of detail who sees it: everyone, signed-in family only, or just you. Phone numbers might be family only; a current location might be private.</p>
 {$fig('privacy-fields', 'The per-field privacy table with public, members only and private columns')}
-{$note('<b>Living people are always protected.</b> Date of birth, birthplace, current location and social media of living people are hidden from visitors whatever the table says, unless that person has opted in.', 'info')}
+{$note('<b>Living people are always protected.</b> Date of birth, birthplace and current location of living people are hidden from visitors whatever the table says, unless that person has opted in.', 'info')}
 HTML],
 
     'family-logins' => ['section' => 'Share and show', 'title' => 'Let your family help', 'mins' => 2,
@@ -164,7 +145,7 @@ HTML],
   <li>Tick the trees they should be able to open, and choose a role in each one:
     <ul>
       <li><b>Viewer</b> can see the whole tree, including what you marked members-only.</li>
-      <li><b>Editor</b> can add and change people and photos.</li>
+      <li><b>Editor</b> can add and change people.</li>
       <li><b>Owner</b> can do everything, including settings, imports and access to that tree.</li>
     </ul></li>
   <li>Optionally, for each tree, pick their own <b>Linked member</b> card.</li>
@@ -181,7 +162,7 @@ HTML],
 {$fig('share', 'The share dialog with the link, a WhatsApp button and the embed options')}
 <h2 id="embed">Embed it on a website</h2>
 <ol class="g-steps">
-  <li>In the same dialog, under <b>Embed on your website</b>, choose the view (tree, timeline, map or memories), light or dark, the <a href="/guide/tree-looks">look</a>, and the height.</li>
+  <li>In the same dialog, under <b>Embed on your website</b>, choose the view (tree, timeline or map), light or dark, the <a href="/guide/tree-looks">look</a>, and the height.</li>
   <li>Press <b>Copy code</b> and paste it into your page. It works anywhere that accepts HTML or an embed block: WordPress, Notion, Google Sites, Blogger, Squarespace, Wix.</li>
 </ol>
 <pre><code>&lt;iframe src="https://your-site.com/embed/sharma" title="Sharma family tree"
@@ -207,7 +188,7 @@ HTML],
     'tree-looks' => ['section' => 'Share and show', 'title' => 'Choose a look for your tree', 'mins' => 1,
         'summary' => 'Six looks for colours, card shape and lettering, each in light and dark.',
         'body' => <<<HTML
-<p>The look sets the colours, the shape of the cards and the lettering of names across the tree, timeline, map and memory book. Every look has a light and a dark version; visitors still switch between light and dark themselves.</p>
+<p>The look sets the colours, the shape of the cards and the lettering of names across the tree, timeline and map. Every look has a light and a dark version; visitors still switch between light and dark themselves.</p>
 {$clip('tree-looks', 'The Romanov tree in Heritage, Banyan, Royal, Minimal, Parchment and Marigold.')}
 <ol class="g-steps">
   <li>Open <b>Admin &gt; Tree Settings &gt; Tree look</b>.</li>
@@ -237,24 +218,16 @@ HTML],
 {$fig('poster', 'The poster page with options on the left and a preview of the Curie family chart')}
 <p>For a very large family, pick <b>Long banner</b>: a strip as long as the tree needs, for print-shop roll paper. Under the button, the page tells you how big names will print.</p>
 <h2 id="book">A family book</h2>
-<p>Switch to <b>Family book</b>: a cover with your emblem, a list of everyone by generation, then a page for each person with their photo, dates, places, family and story, plus a few photos from the memory book. Press <b>Print / Save as PDF</b> and choose Save as PDF.</p>
+<p>Switch to <b>Family book</b>: a cover with your emblem, a list of everyone by generation, then a page for each person with their photo, dates, places, family. Press <b>Print / Save as PDF</b> and choose Save as PDF.</p>
 {$fig('book', 'The family book page for the Curie family')}
 {$note('The poster and the book show exactly what visitors to your tree can see, so private details stay private when printed.', 'info')}
-HTML],
-
-    'weekly-email' => ['section' => 'Share and show', 'title' => 'The weekly family email', 'mins' => 1,
-        'summary' => 'Every Monday: the week\'s birthdays, anniversaries, remembrance days and tithis.',
-        'body' => <<<HTML
-<p>Everyone with an account on a tree gets a short email on Monday mornings when something is coming up that week: birthdays (with the age), wedding anniversaries, the years since someone passed, and shraddh tithis. Nothing is sent in a quiet week.</p>
-<p>Turn it off or on in <b>Admin &gt; Profile &gt; Weekly email</b>, or with the link at the bottom of any of these emails.</p>
-<p>Running your own copy? See <a href="/guide/self-hosting#weekly">the weekly job</a>.</p>
 HTML],
 
     /* ── Your data ─────────────────────────────────────────────────────── */
     'data-homes' => ['section' => 'Your data', 'title' => 'Choose where your family\'s data lives', 'mins' => 3,
         'summary' => 'Keep it here, or in your own Google Sheet, Airtable base or database. Switch any time.',
         'body' => <<<HTML
-<p>By default your tree is stored in FamilyTree's database, and there is nothing to set up. If you would rather hold the data yourself, each tree can keep its people, photos and tags somewhere you own. Your login and the tree's link stay here either way.</p>
+<p>By default your tree is stored in FamilyTree's database, and there is nothing to set up. If you would rather hold the data yourself, each tree can keep its people and details somewhere you own. Your login and the tree's link stay here either way.</p>
 <table class="g-table">
   <thead><tr><th>Home</th><th>Cost</th><th>Good for</th></tr></thead>
   <tbody>
@@ -277,9 +250,9 @@ HTML],
 HTML],
 
     'google-sheets' => ['section' => 'Your data', 'title' => 'Keep your tree in a Google Sheet', 'mins' => 6,
-        'summary' => 'Free. The family data lives in two tabs you can open and edit by hand.',
+        'summary' => 'Free. The family data lives in one tab you can open and edit by hand.',
         'body' => <<<HTML
-<p>Your tree's people go in a <b>Members</b> tab and photos in a <b>Media</b> tab of a Google Sheet that you own. FamilyTree reads and writes it through a Google service account, a robot account that you share the sheet with. Setting it up takes about ten minutes, once.</p>
+<p>Your tree's people go in a <b>Members</b> tab of a Google Sheet that you own. FamilyTree reads and writes it through a Google service account, a robot account that you share the sheet with. Setting it up takes about ten minutes, once.</p>
 <h2 id="sheet">1. Make a blank sheet</h2>
 <ol class="g-steps">
   <li>Go to <a href="https://sheets.new" rel="noopener">sheets.new</a> and name it, for example <em>Sharma family tree</em>.</li>
@@ -299,7 +272,7 @@ HTML],
 <ol class="g-steps">
   <li>In <b>Admin &gt; Tree Settings &gt; Where your family's data lives</b>, choose <b>A Google Sheet</b>.</li>
   <li>Paste the sheet's link, and paste the whole contents of the JSON key file into <b>Service account key</b>.</li>
-  <li>Press <b>Test</b>, then <b>Set up</b>. The Members and Media tabs appear in your sheet.</li>
+  <li>Press <b>Test</b>, then <b>Set up</b>. The Members tab appears in your sheet.</li>
   <li>Press <b>Switch to this</b>. Your tree is copied into the sheet.</li>
 </ol>
 {$fig('datahome-sheets', 'The Google Sheet form with the sheet link and service account key fields')}
@@ -315,10 +288,10 @@ HTML],
   <li>Add these scopes: <code>data.records:read</code>, <code>data.records:write</code>, <code>schema.bases:read</code>, <code>schema.bases:write</code>.</li>
   <li>Under <b>Access</b>, add only your family tree base. Create the token and copy it; Airtable shows it once.</li>
   <li>In <b>Admin &gt; Tree Settings &gt; Where your family's data lives</b>, choose <b>An Airtable base</b>, paste the base id and the token.</li>
-  <li>Press <b>Test</b>, then <b>Set up</b> (it creates the Members and Media tables), then <b>Switch to this</b>.</li>
+  <li>Press <b>Test</b>, then <b>Set up</b> (it creates the Members table), then <b>Switch to this</b>.</li>
 </ol>
 {$fig('datahome-airtable', 'The Airtable form with base id and personal access token fields')}
-{$note('The free Airtable plan allows 1,000 records per base. People and photos both count, so a tree with 600 people and 300 photos fits; a larger one needs a paid Airtable plan or another home.', 'info')}
+{$note('The free Airtable plan allows 1,000 records per base. A larger tree needs a paid Airtable plan or another home.', 'info')}
 HTML],
 
     'own-database' => ['section' => 'Your data', 'title' => 'Use your own SQLite', 'mins' => 3,
@@ -332,17 +305,17 @@ HTML],
 <p>Pick a SQLite file inside the storage folder; <b>Set up</b> creates the tables and <b>Switch to this</b> points the tree at it.</p>
 HTML],
 
-    'backups' => ['section' => 'Your data', 'title' => 'Back up and take your tree with you', 'mins' => 2,
-        'summary' => 'A full backup in one file, GEDCOM for other family tree sites, and CSV for spreadsheets.',
+    'backups' => ['section' => 'Your data', 'title' => 'Export and take your tree with you', 'mins' => 2,
+        'summary' => 'One full export in one file, GEDCOM for other family tree sites, and CSV for spreadsheets.',
         'body' => <<<HTML
 <p>Your tree is yours. On <b>Admin &gt; Members</b>, the <b>Export</b> menu has:</p>
 <ul>
-  <li><b>Full backup (JSON)</b>: everything, people, partners, photos and tags, in one file. Import it into any FamilyTree, including your own install or the desktop app, and get the same tree back.</li>
+  <li><b>Export everything (JSON)</b>: everything, people and partners, in one file. Import it into any FamilyTree, including your own install or the desktop app, and get the same tree back.</li>
   <li><b>Export GEDCOM</b>: the standard format every family tree program reads: Ancestry, MyHeritage, Gramps, RootsMagic and the rest.</li>
   <li><b>Export CSV</b> and <b>Export JSON</b>: the people as a plain list, for spreadsheets.</li>
 </ul>
 {$fig('members', 'The Members page with the Export and Import buttons above the list of people')}
-{$note('Make a full backup now and then, and keep it with your other important files. Photos are linked in the backup; download any you care about too.')}
+{$note('This is an export for moving your tree, not a scheduled backup. For an install you run yourself, back up the database and uploads folder at the server level; see <a href="/guide/self-hosting#backups">Backups</a>.')}
 HTML],
 
     'tidy-up' => ['section' => 'Your data', 'title' => 'Undo, the bin and duplicates', 'mins' => 3,
@@ -359,7 +332,7 @@ HTML],
 <ol class="g-steps">
   <li>Press <b>Compare and merge</b> to see both entries side by side.</li>
   <li>Choose which entry to keep, and for each detail that differs, which value is right.</li>
-  <li>Press <b>Merge into one person</b>. Children, partners, photo tags and accounts all move to the person you keep, and sources are combined.</li>
+  <li>Press <b>Merge into one person</b>. Children, partners and accounts all move to the person you keep, and other details are combined.</li>
 </ol>
 {$fig('tidy-merge', 'Two entries of Sita Devi compared side by side with a choice for each differing detail')}
 <p>Not the same person after all? Press <b>Not the same person</b> and the pair won't be suggested again.</p>
@@ -369,15 +342,15 @@ HTML],
     'importing' => ['section' => 'Bring and connect', 'title' => 'Move your tree here from another site', 'mins' => 6,
         'summary' => 'Export a GEDCOM file from Ancestry, MyHeritage, FamilySearch, Geni or any program, then import it here.',
         'body' => <<<HTML
-<p>Almost every family tree site and program can save your tree as a <b>GEDCOM</b> file (<code>.ged</code>). FamilyTree reads it: people, dates, places, partners, children, notes, occupations and photo links. Some sites give you a <code>.zip</code>; you can import that as it is.</p>
+<p>Almost every family tree site and program can save your tree as a <b>GEDCOM</b> file (<code>.ged</code>). FamilyTree reads it: people, dates, places, partners, children, notes and occupations. Some sites give you a <code>.zip</code>; you can import that as it is.</p>
 <h2 id="import">Import the file</h2>
 <ol class="g-steps">
   <li>Open <b>Admin &gt; Members</b> and press <b>Import</b>.</li>
-  <li>Choose your <code>.ged</code>, <code>.zip</code> or FamilyTree backup <code>.json</code>. You see how many people, dates and places it holds, before anything changes.</li>
+  <li>Choose your <code>.ged</code>, <code>.zip</code> or FamilyTree export <code>.json</code>. You see how many people, dates and places it holds, before anything changes.</li>
   <li>Choose <b>Add alongside</b> to merge it into the people you already have, or <b>Replace</b> to start the tree over from the file.</li>
 </ol>
 {$fig('import', 'The import dialog showing a preview: 5 people, 2 exact births, 1 place, and the names found')}
-{$note('Dates like "about 1890" or "before 1902" are kept in the person\'s biography rather than turned into a wrong exact date.', 'info')}
+{$note('Dates like "about 1890" or "before 1902" are kept as approximate dates rather than turned into a wrong exact date.', 'info')}
 <h2 id="export-elsewhere">Getting the file out of other sites</h2>
 <p>Menu names change from time to time; if a step does not match, look for <em>Export</em> or <em>Download GEDCOM</em> in the tree's settings.</p>
 <h3 id="ancestry">Ancestry</h3>
@@ -386,7 +359,7 @@ HTML],
   <li>From the tree name's menu, choose <b>Tree Settings</b>.</li>
   <li>Under <em>Manage your tree</em>, press <b>Export tree</b>, then <b>Download your GEDCOM file</b> when it is ready.</li>
 </ol>
-<p>Free, no subscription needed; only the tree's owner can export. Photos are not included, so save the ones you want from the Media Gallery.</p>
+<p>Free, no subscription needed; only the tree's owner can export. Photos are not included in the GEDCOM, so save any you want separately.</p>
 <h3 id="myheritage">MyHeritage</h3>
 <ol class="g-steps">
   <li>Go to <b>Family tree &gt; Manage trees</b>.</li>
@@ -418,7 +391,7 @@ HTML],
   <li><b>Legacy</b>: <b>File &gt; Export to &gt; GEDCOM File</b>, and choose <em>GEDCOM 5.5 (Standard)</em>.</li>
   <li><b>Family Tree Maker</b>: <b>File &gt; Export</b>, choose GEDCOM. Do not password-protect the zip.</li>
 </ul>
-{$note('<b>Two things to check.</b> No site puts photos inside a GEDCOM file, so download the photos you want separately and add them on the Photos page. And many sites offer to hide or blank out living people when exporting; turn that off if you want your whole family to come across.', 'warn')}
+{$note('<b>One thing to check.</b> Many sites offer to hide or blank out living people when exporting; turn that off if you want your whole family to come across.', 'warn')}
 HTML],
 
     /* ── Run it yourself ───────────────────────────────────────────────── */
@@ -443,19 +416,16 @@ HTML],
 cd familytree
 docker compose up -d --build
 # then open http://localhost:8088/install/</code></pre>
-<h2 id="upgrade">Upgrading</h2>
-<h2 id="weekly">The weekly job</h2>
-<p>Once a week, <code>cron.php</code> sends the family email, makes a backup of every tree (the last 8 are kept) and clears out old data. Add a cron job in your hosting panel, Monday morning:</p>
-<pre><code>php /home/you/public_html/cron.php weekly</code></pre>
-<p>Or set <code>CRON_KEY</code> in the environment (see <code>docker-compose.yml</code>) and call <code>https://your-site/cron.php?key=…</code> from any web cron service.</p>
 <h2 id="upgrade-files">Upgrading the files</h2>
 <p>Upload the new files over the old ones, keeping your <code>storage/</code> (which holds the SQLite file, the encryption key and caches) and <code>admin/uploads/</code>. The app brings its tables up to date itself.</p>
+<h2 id="backups">Backups</h2>
+<p>Backups are your responsibility. Copy <code>storage/</code> (the SQLite file, encryption key and caches) and <code>admin/uploads/</code> to a safe place, or use your host's volume or snapshot backups. To copy a running SQLite database safely, use <code>sqlite3 storage/familytree.sqlite ".backup /path/to/backup.sqlite"</code>. If a tree keeps its data in a Google Sheet, Airtable or another data home, back that up at the provider.</p>
 HTML],
 
     'desktop-app' => ['section' => 'Run it yourself', 'title' => 'FamilyTree on your own computer', 'mins' => 2,
         'summary' => 'The same app in a window, no server and no account. Keep the folder in Drive for sync.',
         'body' => <<<HTML
-<p>The desktop app runs FamilyTree on your computer with everything bundled. Your tree is one folder: a SQLite file and your photos. Put that folder inside Google Drive, Dropbox or OneDrive and you get backup and sync between computers for free.</p>
+<p>The desktop app runs FamilyTree on your computer with everything bundled. Your tree is one folder: a SQLite file and your uploads. Put that folder inside Google Drive, Dropbox or OneDrive and you get backup and sync between computers for free.</p>
 <h2 id="build">Getting it</h2>
 <p>Ready-made installers are not published yet. If you are comfortable with a terminal, build it from the code:</p>
 <pre><code>git clone https://github.com/ravirahul/familytree
@@ -463,7 +433,7 @@ cd familytree/desktop
 npm install
 npm run fetch-php   # downloads PHP for your computer
 npm start           # or: npm run dist, for an installer</code></pre>
-<p>On first start it asks where to keep your tree, then opens the installer in the window. Everything else works as on the website, including <a href="/guide/importing">import</a>, <a href="/guide/backups">backups</a> and the <a href="/guide/data-homes">JSON file home</a>.</p>
+<p>On first start it asks where to keep your tree, then opens the installer in the window. Everything else works as on the website, including <a href="/guide/importing">import</a>, <a href="/guide/backups">export</a> and the <a href="/guide/data-homes">JSON file home</a>.</p>
 HTML],
     ];
 }

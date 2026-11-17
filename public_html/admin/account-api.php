@@ -39,11 +39,6 @@ if ($method === 'GET' && isset($_GET['delete_plan'])) {
     exit;
 }
 
-if ($method === 'GET' && isset($_GET['digest'])) {
-    try { $st = $pdo->prepare("SELECT digest FROM family_users WHERE id = ?"); $st->execute([$userId]); $on = (int)$st->fetchColumn() === 1; }
-    catch (Throwable $e) { $on = false; }
-    echo json_encode(['digest' => $on]); exit;
-}
 
 if ($method === 'GET') {
     $stmt = $pdo->prepare("SELECT id, display_name, email FROM family_users WHERE id = ?");
@@ -56,14 +51,9 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $action = $input['action'] ?? '';
 
-    if ($action === 'digest') {
-        $pdo->prepare("UPDATE family_users SET digest = ? WHERE id = ?")->execute([!empty($input['on']) ? 1 : 0, $userId]);
-        echo json_encode(['ok' => true, 'digest' => !empty($input['on'])]); exit;
-    }
-
     if ($action === 'update_profile') {
         $name  = trim($input['display_name'] ?? '');
-        $email = trim($input['email'] ?? '');
+        $email = strtolower(trim($input['email'] ?? ''));
 
         if ($name === '' || $email === '') {
             http_response_code(400);
@@ -76,8 +66,9 @@ if ($method === 'POST') {
             exit;
         }
 
-        // Check email uniqueness (not self)
-        $stmt = $pdo->prepare("SELECT id FROM family_users WHERE email = ? AND id != ?");
+        // Check email uniqueness (not self). Emails are stored lower-case, so a
+        // new address has one form no matter how it was typed.
+        $stmt = $pdo->prepare("SELECT id FROM family_users WHERE LOWER(email) = ? AND id != ?");
         $stmt->execute([$email, $userId]);
         if ($stmt->fetch()) {
             http_response_code(409);

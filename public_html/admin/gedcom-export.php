@@ -17,6 +17,7 @@ if (empty($_SESSION['admin_logged_in'])) {
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
+ft_require_tree_role($pdo, ['owner']);
 
 $tenantId = getAdminTenantId();
 
@@ -168,14 +169,6 @@ foreach ($members as $m) {
         array_push($out, ...gedSources($x, 'death', 2));
     }
     foreach (['name', 'place', 'parents', 'other'] as $fact) array_push($out, ...gedSources($x, $fact, 1));
-
-    if (!empty($m['wiki'])) {
-        // NOTE with CONT lines, ~200 chars per line
-        $note = gedEscape($m['wiki']);
-        $chunks = str_split($note, 200);
-        $out[] = '1 NOTE ' . array_shift($chunks);
-        foreach ($chunks as $c) $out[] = '2 CONT ' . $c;
-    }
 
     if (isset($famAsChild[$id])) {
         $out[] = '1 FAMC @' . $famAsChild[$id] . '@';

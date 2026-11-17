@@ -67,7 +67,7 @@ function ft_duplicates(array $members, int $limit = 60): array {
 
 /** fields the merge screen offers a choice for */
 const FT_MERGE_FIELDS = ['name', 'nickname', 'gender', 'birth_date', 'birth_location', 'death_date', 'death_location', 'is_alive',
-    'current_location', 'img', 'insta_url', 'fb_url', 'anniversary_date', 'wiki'];
+    'current_location', 'img', 'anniversary_date'];
 
 /**
  * Merge $drop into $keep: $choices[field] = 'drop' takes the other person's value; otherwise the kept
@@ -88,7 +88,7 @@ function ft_merge_members(PDO $pdo, string $tid, FamilyStore $store, int $keep, 
     foreach (['fid', 'mid'] as $f) if (!$k[$f] && $d[$f] && $d[$f] !== $keep) $patch[$f] = $d[$f];
     $pids = array_values(array_unique(array_diff(array_merge($k['pids'], $d['pids']), [$keep, $drop])));
     if ($pids !== $k['pids']) $patch['pids'] = $pids;
-    // extra: kept values win; sources and partnerships are combined
+    // extra: kept values win; partnerships are combined
     $x = $k['extra']; $y = $d['extra'];
     foreach ($y as $key => $v) {
         if ($key === 'sources') { $x['sources'] = array_values(array_unique(array_merge($x['sources'] ?? [], $v), SORT_REGULAR)); continue; }

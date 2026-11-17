@@ -9,7 +9,7 @@
  *   ?hide=b21,a45 hides everyone below #21 and above #45 on any kind.
  *
  * The page itself carries no family data: assets/print.js reads the same public
- * APIs the tree viewer uses (api-family.php, api-media.php), so privacy is applied
+ * APIs the tree viewer uses (api-family.php), so privacy is applied
  * exactly as it is everywhere else.
  */
 

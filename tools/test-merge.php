@@ -18,7 +18,7 @@ $dada  = $s->insertMember(['name' => 'Ram Prasad Sharma', 'gender' => 'male', 'b
 $dadi  = $s->insertMember(['name' => 'Sita Devi', 'gender' => 'female', 'pids' => [$dada]]);
 $s->patchMember($dada, ['pids' => [$dadi]]);
 $papa  = $s->insertMember(['name' => 'Mohan Sharma', 'gender' => 'male', 'fid' => $dada, 'mid' => $dadi]);
-$copy  = $s->insertMember(['name' => 'Late Shri Ram Prasad Sharma', 'gender' => 'male', 'birth_date' => '1932-04-01', 'birth_location' => 'Patna', 'wiki' => 'Taught at the village school.',
+$copy  = $s->insertMember(['name' => 'Late Shri Ram Prasad Sharma', 'gender' => 'male', 'birth_date' => '1932-04-01', 'birth_location' => 'Patna',
     'extra' => ['sources' => [['fact' => 'birth', 'title' => 'Family register']], 'gotra' => 'Kashyap']]);
 $chacha = $s->insertMember(['name' => 'Shyam Sharma', 'gender' => 'male', 'fid' => $copy]);
 $other = $s->insertMember(['name' => 'Ram Prasad Sharma', 'gender' => 'male', 'birth_date' => '1990-01-01']);   // a namesake, born much later
@@ -34,7 +34,7 @@ assert(ft_name_key('Late Shri Ram-Prasad  Sharma') === 'ram prasad sharma', 'tit
 $r = ft_merge_members($pdo, 'tree-m', $s, $dada, $copy, ['birth_location' => 'drop']);
 $k = $s->member($dada);
 assert($s->member($copy) === null, 'the copy is gone');
-assert($k['birth_location'] === 'Patna' && $k['wiki'] === 'Taught at the village school.', 'empty fields filled from the copy');
+assert($k['birth_location'] === 'Patna', 'empty fields filled from the copy');
 assert($k['extra']['gotra'] === 'Kashyap' && count($k['extra']['sources']) === 1, 'extra details carried over');
 assert($k['pids'] === [$dadi], 'partner kept');
 assert($s->member($chacha)['fid'] === $dada, "the copy's child now hangs off the kept grandfather");

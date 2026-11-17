@@ -135,7 +135,7 @@
       <p class="settings-note">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <strong>Living-person protection is always enforced</strong> regardless of these
-        settings: Date of Birth, Birth Location, Current Location, and Social Media are
+        settings: Date of Birth, Birth Location and Current Location are
         automatically hidden for living members unless they have individually opted in.
       </p>
 
@@ -164,7 +164,7 @@
       </h2>
       <p class="settings-desc" style="margin-bottom:0;">
         For members marked as <strong>alive</strong>, sensitive fields (Date of Birth, Birth Location,
-        Current Location, Social Media) are automatically hidden from the public tree — even
+        Current Location) are automatically hidden from the public tree — even
         if your per-field settings above say "Public". This follows GDPR and privacy best
         practices. You can override this per-member in the <strong>Members</strong> tab by
         enabling "Privacy Override (Consented)" on their record.
@@ -194,7 +194,7 @@
         <div class="em-controls">
           <label class="dh-field"><span>Colour</span><span class="em-color-row"><input type="color" id="emColor" value="#D4A643" oninput="emColorChange(this.value)"><input type="text" id="emColorHex" value="#D4A643" maxlength="7" oninput="emColorChange(this.value)" style="width:96px"></span></label>
           <div class="em-upload" id="emUploadWrap">
-            <label class="btn btn-soft" style="cursor:pointer">Upload your own<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="emUpload(this)"></label>
+            <label class="btn btn-soft" style="cursor:pointer">Upload your own<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="emUpload(this)"></label>
             <small>Square PNG or SVG, under 400 KB</small>
           </div>
           <button type="button" class="btn btn-soft" id="emRemove" onclick="emRemove()">No emblem</button>
@@ -233,20 +233,13 @@
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="margin-right:8px;vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/></svg>
         Tree look
       </h2>
-      <p class="settings-desc">Colours, card shape and lettering for your tree, its timeline, map and memories. Each look has a light and a dark version; visitors still choose light or dark.</p>
+      <p class="settings-desc">Colours, card shape and lettering for your tree, its timeline and map. Each look has a light and a dark version; visitors still choose light or dark.</p>
       <div class="lk-grid" id="lkGrid" role="radiogroup" aria-label="Tree look" data-sk="grid" data-n="4"></div>
       <label class="dh-check" style="margin:0 0 14px"><input type="checkbox" id="lkHindu"> Show Hindu dates (tithi) worked out from birth and death dates, and remind about shraddh by tithi</label>
       <div class="dh-actions">
         <button type="button" class="btn btn-primary" onclick="lkSave()">Save look</button>
         <span class="dh-msg" id="lkMsg"></span>
       </div>
-    </section>
-
-    <!-- ── Weekly backups (made by cron.php) ──────────────────── -->
-    <section class="settings-card" id="backupSection">
-      <h2 class="settings-heading">Backups</h2>
-      <p class="settings-desc">A copy of the whole tree is made every week and the last 8 are kept. Each one can be imported back with Members, Import. <a href="backup-export.php">Download a backup right now</a>.</p>
-      <div id="bkList" class="dh-hint" data-sk="lines" data-n="1"></div>
     </section>
 
     <!-- ── Data home: where this tree's family data lives ───────── -->
@@ -256,7 +249,7 @@
         Where your family's data lives
       </h2>
       <p class="settings-desc">
-        Your members, photos and tags can live in FamilyTree's database or in a place you own.
+        Your members and their details can live in FamilyTree's database or in a place you own.
         Accounts and this tree's link stay here either way. Switch any time; moving copies the data across and keeps every id.
       </p>
       <p class="dh-status" id="dhStatus" aria-busy="true"><span class="sk sk-line w60" aria-hidden="true"></span></p>

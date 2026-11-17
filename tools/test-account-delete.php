@@ -99,7 +99,7 @@ assert($n("SELECT COUNT(*) FROM tenant_users WHERE user_id = ?", [$bina]) === 2,
 $r = ft_delete_tree($pdo, $gamma);
 assert($n("SELECT COUNT(*) FROM tenants WHERE id = 'T-gamma'") === 0 && !$r['external_home'], 'gamma deleted');
 assert(!is_file("$tmp/uploads/gamma.jpg"), 'gamma photo deleted');
-assert($q("SELECT tenant_id FROM family_users WHERE id = ?", [$bina])->fetchColumn() === 'T-alpha', 'Bina\'s open tree moved to alpha');
+assert($n("SELECT COUNT(*) FROM tenant_users WHERE user_id = ? AND tenant_id = 'T-alpha'", [$bina]) === 1, 'Bina keeps alpha after gamma went');
 
 array_map('unlink', glob("$tmp/uploads/*") ?: []);
 echo "account delete: ok\n";

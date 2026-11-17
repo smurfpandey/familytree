@@ -16,7 +16,7 @@ function emRender() {
   document.getElementById('emColorHex').value = _em.color;
   const prev = document.getElementById('emPreview');
   if (_em.kind === 'builtin') prev.innerHTML = ftEmblemSvg(_em.id, _em.color, 96);
-  else if (_em.kind === 'upload' && _em.url) prev.innerHTML = `<img src="${_em.url}" alt="Family emblem">`;
+  else if (_em.kind === 'upload' && ftSafeUrl(_em.url)) prev.innerHTML = `<img src="${ftEsc(ftSafeUrl(_em.url))}" alt="Family emblem">`;
   else prev.innerHTML = `<span class="em-none">No emblem</span>`;
   document.getElementById('emUploadWrap').classList.toggle('on', _em.kind === 'upload');
   document.getElementById('emRemove').style.display = _em.kind === 'none' ? 'none' : '';
@@ -27,7 +27,7 @@ function emColorChange(v) { if (/^#[0-9a-fA-F]{6}$/.test(v)) { _em.color = v.toU
 function emRemove() { _em.kind = 'none'; emRender(); }
 async function emUpload(input) {
   const f = input.files && input.files[0]; if (!f) return;
-  if (f.size > 400 * 1024) { emMsg('Keep the emblem under 400 KB (a square PNG or SVG is ideal).', false); return; }
+  if (f.size > 400 * 1024) { emMsg('Keep the emblem under 400 KB (a square PNG, JPEG or WebP is ideal).', false); return; }
   const dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); });
   emMsg('Uploading…', null);
   const r = await csrfFetch('settings-api.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ emblem_upload: dataUrl }) });
@@ -45,16 +45,8 @@ async function emSave() {
   _em = d.settings.emblem; emRender();
   emMsg('Saved. ' + (_emSlug ? 'See it on /tree/' + _emSlug : ''), true);
 }
-async function loadBackups() {
-  const el = document.getElementById('bkList'); if (!el) return;
-  const d = await csrfFetch('backup-export.php?list=1').then(r => r.json()).catch(() => ({ error: 'Could not load backups.' }));
-  if (d.error) { el.textContent = d.error; return; }
-  el.innerHTML = d.backups.length
-    ? d.backups.map(b => `<a href="backup-export.php?file=${b.date}" style="display:inline-block;margin:0 12px 6px 0">${new Date(b.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</a><small>${b.kb} KB</small>`).join('<br>')
-    : 'No weekly backups yet. The first one is made on the next weekly run.';
-}
+
 async function loadEmblem() {
-  loadBackups();
   try {
     const r = await csrfFetch('settings-api.php'); const d = await r.json();
     if (d.settings && d.settings.emblem) _em = d.settings.emblem;
@@ -66,16 +58,14 @@ async function loadEmblem() {
     emRender(); lkRender(); cvRender();
   } catch (e) { emMsg('Could not load: ' + e.message, false); }
 }
-
-/* ── Cover picture on member cards ─────────────────────────────────────────── */
-let _cover = null;
 function cvRender() {
   const img = document.getElementById('cvImg'); if (!img) return;
-  img.style.backgroundImage = _cover ? `url('${_cover}')` : '';
-  img.classList.toggle('has-img', !!_cover);
+  const cover = ftSafeUrl(_cover);
+  img.style.backgroundImage = cover ? `url("${cover.replace(/["\\]/g, '')}")` : '';
+  img.classList.toggle('has-img', !!cover);
   document.getElementById('cvRemove').style.display = _cover ? '' : 'none';
   const em = document.getElementById('cvEmblem');
-  em.innerHTML = _em.kind === 'builtin' ? ftEmblemSvg(_em.id, _em.color, 32) : (_em.kind === 'upload' && _em.url ? `<img src="${_em.url}" alt="">` : '');
+  em.innerHTML = _em.kind === 'builtin' ? ftEmblemSvg(_em.id, _em.color, 32) : (_em.kind === 'upload' && ftSafeUrl(_em.url) ? `<img src="${ftEsc(ftSafeUrl(_em.url))}" alt="">` : '');
 }
 function cvMsg(t, ok) { const el = document.getElementById('cvMsg'); el.textContent = t; el.className = 'dh-msg ' + (ok === true ? 'ok' : ok === false ? 'bad' : ''); }
 // shrink to at most 1600 px wide as a JPEG before sending, so phone photos upload fast

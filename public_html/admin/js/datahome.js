@@ -5,7 +5,7 @@
 const DH_KINDS = {
     here:     { label: 'FamilyTree’s database', note: 'Nothing to set up. Your data lives with this site.' },
     sqlite:   { label: 'A SQLite file on this server', note: 'One file inside the storage folder. Good for a self-hosted single family.' },
-    sheets:   { label: 'A Google Sheet', note: 'Free. Two tabs, Members and Media, that your family can also open and edit by hand.' },
+    sheets:   { label: 'A Google Sheet', note: 'Free. One Members tab that your family can also open and edit by hand.' },
     airtable: { label: 'An Airtable base', note: 'Free up to 1,000 records per base.' },
     json:     { label: 'A JSON file', note: 'One readable file. On the desktop app it can sit in a Drive, Dropbox or OneDrive folder.' },
 };
@@ -72,8 +72,8 @@ async function loadDataHome() {
         st.removeAttribute('aria-busy'); st.textContent = '';
         if (d.error) { dhMsg(d.error, false); return; }
         _dh = { kind: d.kind, config: d.config || {}, pick: null };
-        st.innerHTML = `Now: <b>${DH_KINDS[d.kind]?.label || d.kind}</b> · ${d.counts ? `${d.counts.members} members, ${d.counts.media} photos` : ''}`
-                     + (d.status === 'error' ? ` <span class="bad">· not reachable: ${d.message}</span>` : '');
+        st.innerHTML = `Now: <b>${ftEsc(DH_KINDS[d.kind]?.label || d.kind)}</b> · ${d.counts ? `${ftEsc(d.counts.members)} members` : ''}`
+                     + (d.status === 'error' ? ` <span class="bad">· not reachable: ${ftEsc(d.message)}</span>` : '');
         dhRender();
     } catch (e) { dhMsg('Could not load: ' + e.message, false); }
 }
@@ -86,14 +86,14 @@ async function dhTest() {
     dhMsg('Testing…', null);
     const d = await dhCall('test');
     if (d.error) return dhMsg(d.error, false);
-    if (d.ok) dhMsg(`Connected. It holds ${d.counts.members} members and ${d.counts.media} photos.`, true);
+    if (d.ok) dhMsg(`Connected. It holds ${d.counts.members} members.`, true);
     else dhMsg(d.message + (d.needs_setup ? ' — press Set up to create the tables.' : ''), false);
 }
 async function dhSetup() {
     dhMsg('Setting up…', null);
     const d = await dhCall('setup');
     if (d.error) return dhMsg(d.error, false);
-    dhMsg(`Ready. It holds ${d.counts.members} members and ${d.counts.media} photos.`, true);
+    dhMsg(`Ready. It holds ${d.counts.members} members.`, true);
 }
 async function dhSave() {
     const kind = _dh.pick || _dh.kind;
@@ -104,6 +104,6 @@ async function dhSave() {
     dhMsg('Saving…', null);
     const d = kind === 'here' ? await dhCall('reset', { copy }) : await dhCall('save', { copy });
     if (d.error) return dhMsg(d.error, false);
-    dhMsg(`Done. The tree now reads from ${DH_KINDS[d.kind].label} (${d.counts.members} members, ${d.counts.media} photos).`, true);
+    dhMsg(`Done. The tree now reads from ${DH_KINDS[d.kind].label} (${d.counts.members} members).`, true);
     loadDataHome();
 }
